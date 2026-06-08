@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { AddPackageForm } from '@/components/add-package-form'
 import { PackageCard } from '@/components/package-card'
@@ -67,6 +67,30 @@ export default function DashboardPage() {
       setPackages(await res.json())
     }
   }, [])
+
+  const prevStatusRef = useRef<Record<string, string | null>>({})
+  const isFirstRenderRef = useRef(true)
+
+  useEffect(() => {
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false
+      for (const pkg of packages) {
+        prevStatusRef.current[pkg.id] = pkg.status
+      }
+      return
+    }
+
+    for (const pkg of packages) {
+      const prev = prevStatusRef.current[pkg.id]
+      if (prev != null && prev !== pkg.status) {
+        ;(window as any).electronAPI?.showNotification?.(
+          'Package Status Updated',
+          `${pkg.trackingNumber}: ${pkg.status}`
+        )
+      }
+      prevStatusRef.current[pkg.id] = pkg.status
+    }
+  }, [packages])
 
   const filteredPackages = useMemo(() => {
     let list = packages
