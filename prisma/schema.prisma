@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Package {
+  id             String   @id @default(cuid())
+  trackingNumber String   @unique
+  carrier        String   @default("fedex")
+  nickname       String?
+  partNumbers    String   @default("[]")
+  status         String?
+  eta            String?
+  origin         String?
+  destination    String?
+  events         String   @default("[]")
+  subPackages    String   @default("[]")
+  lastCheckedAt  DateTime?
+  autoRefresh Boolean @default(false)
+  aiSummary    String?
+  aiRootCause  String?
+  aiAnalyzedAt DateTime?
+  aiDelayRisk  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model NotificationSetting {
+  id                  String   @id @default("global")
+  enabled             Boolean  @default(true)
+  dailySummaryEnabled Boolean  @default(false)
+  dailySummaryTime    String   @default("09:00")
+  periodicInterval    Int      @default(0)
+  lastDailySent       String?
+  lastPeriodicSent    DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model NotificationChannel {
+  id String @id @default(cuid())
+  type String
+  label String
+  enabled Boolean @default(true)
+  mode String?
+  config String @default("{}")
+  notifyOnStatuses String @default("[]")
+  sendSummary Boolean @default(false)
+  locale String @default("en")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  contacts NotificationContact[]
+  logs NotificationLog[]
+}
+
+model NotificationContact {
+  id String @id @default(cuid())
+  channelId String
+  name String
+  identifier String
+  enabled Boolean @default(true)
+  locale String?
+  createdAt DateTime @default(now())
+  channel NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+}
+
+model LLMSetting {
+  id           String  @id @default("global")
+  provider     String  @default("openai")
+  providerLabel String?
+  compatMode   String  @default("chat")
+  locale       String  @default("en")
+  apiKey       String?
+  baseUrl      String?
+  model        String  @default("gpt-4o-mini")
+  enabled      Boolean @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model NotificationLog {
+  id               String   @id @default(cuid())
+  packageId        String
+  channelId        String
+  notificationType String
+  status           String
+  success          Boolean
+  errorMessage     String?
+  sentAt           DateTime @default(now())
+  channel          NotificationChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+}

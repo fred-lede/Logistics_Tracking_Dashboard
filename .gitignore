@@ -1,0 +1,40 @@
+
+!.env.local.example
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+.DS_Store
+.env*
+.pnp.*
+.pnpm-debug.log*
+.superpowers/
+.vercel
+.yarn/*
+*.db
+*.db-journal
+*.pem
+*.tsbuildinfo
+/.next/
+/.pnp
+/build
+/coverage
+/node_modules
+/out/
+/src/generated/prisma
+# database
+# debug
+# dependencies
+# env files (can opt-in for committing if needed)
+# misc
+# next.js
+# production
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# superpowers artifacts
+# testing
+# typescript
+# vercel
+next-env.d.ts
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
