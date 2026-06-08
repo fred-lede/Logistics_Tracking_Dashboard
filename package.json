@@ -10,7 +10,7 @@
     "build:assets": "node scripts/generate-icons.mjs",
     "start": "next start -p 3100",
     "lint": "eslint",
-    "postinstall": "prisma generate && electron-rebuild -f -w better-sqlite3",
+    "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",
     "package:mac": "electron-builder --mac",
