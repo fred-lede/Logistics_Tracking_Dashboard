@@ -21,6 +21,7 @@ mac:
   category: public.app-category.productivity
   hardenedRuntime: true
   gatekeeperAssess: false
+  identity: null
 
 win:
   target:
