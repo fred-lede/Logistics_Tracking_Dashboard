@@ -83,7 +83,7 @@ export default function DashboardPage() {
     for (const pkg of packages) {
       const prev = prevStatusRef.current[pkg.id]
       if (prev != null && prev !== pkg.status) {
-        ;(window as any).electronAPI?.showNotification?.(
+        ;window.electronAPI?.showNotification?.(
           'Package Status Updated',
           `${pkg.trackingNumber}: ${pkg.status}`
         )
