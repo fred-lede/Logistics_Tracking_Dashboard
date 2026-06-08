@@ -6,12 +6,14 @@ A multi-carrier package tracking dashboard with multi-channel notification syste
 
 ## Current state
 
-v2 complete — single-user dashboard with:
+v2 complete — single-user dashboard with Electron desktop wrapper:
 - Package tracking via carrier APIs (FedEx Sandbox)
-- Multi-channel notifications (Teams/Telegram/WeChat/WhatsApp)
+- Multi-channel notifications (Teams/Telegram/WeChat/WhatsApp) + Electron native notifications
 - Daily and periodic summary notifications
 - i18n in 4 languages (en/zh-TW/zh-CN/es-MX)
 - Settings page for notification channel management
+- System tray with background execution
+- Cross-platform builds (macOS/Windows/Linux)
 
 ## Tech stack
 
@@ -43,13 +45,18 @@ v2 complete — single-user dashboard with:
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Start dev server (port 3100) |
-| `npm run build` | TypeScript check + production build |
+| `npm run dev` | Start Electron + Next.js dev (port 3310) |
+| `npm run dev:next` | Start Next.js dev only (port 3100) |
+| `npm run build` | Build Next.js standalone + icons |
+| `npm run build:next` | Next.js build + copy static/public |
 | `npm test` | Run Vitest suite (28 tests) |
 | `npm run lint` | Lint check |
+| `npm run package:mac` | Build + package macOS (.dmg/.zip) |
+| `npm run package:win` | Build + package Windows (.exe/.portable) |
+| `npm run package:linux` | Build + package Linux (.AppImage/.deb) |
+| `npm run package:all` | Package for all platforms |
 | `npx prisma studio` | DB browser |
 | `npx prisma migrate dev --name <name>` | New migration |
-| `npm run dev -- -p 3100` | Start with explicit port |
 
 ## Critical: Node.js version mismatch
 
@@ -63,6 +70,17 @@ PATH="/Users/fred/.nvm/versions/node/v20.20.2/bin:$PATH" \
 ```
 
 After rebuilding, verify: `node -e "require('better-sqlite3'); console.log('OK')"`
+
+### Electron native module handling
+
+When packaging with `electron-builder`, native modules are automatically rebuilt for Electron's Node.js ABI. The `postinstall` script only runs `prisma generate` — no `electron-rebuild` needed there.
+
+If you manually need to rebuild for Electron:
+```bash
+npx @electron/rebuild -f -w better-sqlite3
+```
+
+This is only needed if running the dev workflow fails with native module errors. In that case, rebuild for system Node after: `npm run postinstall`.
 
 ## Project structure
 
@@ -123,6 +141,12 @@ src/
         wechat.ts        # WeCom group robot webhook
         whatsapp.ts      # WhatsApp Cloud API
   generated/prisma/      # Prisma Client (gitignored)
+electron/
+  main.js                # Electron main process (dev/prod server spawn)
+  preload.js             # contextBridge IPC (notifications, app version)
+  tray.js                # System tray (background execution)
+  notification.js        # Native desktop notifications
+  electron-builder.yml   # Cross-platform packaging config
 messages/
   en.json                # English translations
   zh-TW.json             # Traditional Chinese
