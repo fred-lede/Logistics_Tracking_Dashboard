@@ -1,15 +1,22 @@
 {
   "name": "logistics-tracking-dashboard",
   "version": "0.1.0",
+  "main": "electron/main.js",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3100",
-    "build": "next build",
+    "dev": "concurrently -k \"next dev -p 3310\" \"electron .\"",
+    "build": "npm run build:next && npm run build:assets",
+    "build:next": "next build && cp -R .next/static .next/standalone/.next/static && cp -R public .next/standalone/public",
+    "build:assets": "node scripts/generate-icons.mjs",
     "start": "next start -p 3100",
     "lint": "eslint",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate && electron-rebuild -f -w better-sqlite3",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "package:mac": "electron-builder --mac",
+    "package:win": "electron-builder --win",
+    "package:linux": "electron-builder --linux",
+    "package:all": "electron-builder --mac --win --linux"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.81",
@@ -26,6 +33,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "@electron/rebuild": "^4.0.4",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -34,6 +42,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.2",
+    "concurrently": "^9.2.1",
+    "electron": "^41.7.1",
+    "electron-builder": "^26.15.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "jsdom": "^29.1.1",
