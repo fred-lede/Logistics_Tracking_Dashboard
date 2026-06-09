@@ -84,10 +84,10 @@ async function runRebuild() {
   }
 
   if (mtimeAfter === mtimeBefore) {
-    console.warn('[rebuild-native] Binary mtime unchanged - rebuild may not have occurred');
-  } else {
-    console.log('[rebuild-native] Binary rebuilt successfully (mtime changed)');
+    console.error('[rebuild-native] Binary mtime unchanged - rebuild did not occur');
+    return false;
   }
+  console.log('[rebuild-native] Binary rebuilt successfully (mtime changed)');
 
   const sizeKB = Math.round(fs.statSync(getBinaryPath(standaloneNativeDir)).size / 1024);
   console.log('[rebuild-native] Binary size:', sizeKB, 'KB');

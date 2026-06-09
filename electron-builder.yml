@@ -8,8 +8,6 @@ directories:
 
 asar: false
 
-afterPack: scripts/after-pack.cjs
-
 files:
   - electron/**/*
   - .next/standalone/**/*
