@@ -18,9 +18,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: npm run package:mac
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - run: npm run package:mac -- --publish=never
       - uses: actions/upload-artifact@v4
         with:
           name: Logistics-Dashboard-mac
@@ -36,9 +34,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: npm run package:win
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - run: npm run package:win -- --publish=never
       - uses: actions/upload-artifact@v4
         with:
           name: Logistics-Dashboard-win
@@ -54,9 +50,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - run: npm run package:linux
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - run: npm run package:linux -- --publish=never
       - uses: actions/upload-artifact@v4
         with:
           name: Logistics-Dashboard-linux
