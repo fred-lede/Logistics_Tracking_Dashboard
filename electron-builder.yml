@@ -8,6 +8,8 @@ directories:
 
 asar: false
 
+npmRebuild: false
+
 files:
   - electron/**/*
   - .next/standalone/**/*
