@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "electron .",
-    "dev:next": "next dev -p 3310",
+    "dev:next": "next dev --webpack -p 3310",
     "build": "npm run build:next && npm run build:assets",
     "build:next": "next build && cp -R .next/static .next/standalone/.next/static && cp -R public .next/standalone/public",
     "build:assets": "node scripts/generate-icons.mjs",

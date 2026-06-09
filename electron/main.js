@@ -56,7 +56,7 @@ function startNextServer() {
 
   if (isDev) {
     const nextBin = getNextBin();
-    nextServer = spawn('node', [nextBin, 'dev', '-p', String(DEV_PORT)], {
+    nextServer = spawn('node', [nextBin, 'dev', '--webpack', '-p', String(DEV_PORT)], {
       cwd,
       env: { ...getCleanEnv(), DATABASE_URL: 'file:' + dbPath },
       stdio: 'pipe',
