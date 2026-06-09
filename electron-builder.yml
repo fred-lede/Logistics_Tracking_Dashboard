@@ -28,13 +28,13 @@ mac:
 
 win:
   target:
-    - nsis
-    - portable
+    - "nsis:x64"
+    - "portable:x64"
   icon: assets/icon.ico
 
 linux:
   target:
-    - AppImage
-    - deb
+    - "AppImage:x64"
+    - "deb:x64"
   icon: assets/icon.png
   category: Office
