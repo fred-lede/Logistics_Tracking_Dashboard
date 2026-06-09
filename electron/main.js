@@ -18,11 +18,29 @@ function getDbPath() {
   return path.join(app.getPath('userData'), 'dev.db');
 }
 
+function getNextBin() {
+  return path.join(process.cwd(), 'node_modules', 'next', 'dist', 'bin', 'next');
+}
+
 function getServerEntry() {
   if (isDev) {
     return null;
   }
   return path.join(process.resourcesPath, 'app', '.next', 'standalone', 'server.js');
+}
+
+function getCleanEnv() {
+  const env = { ...process.env };
+  const electronVars = [
+    'ELECTRON_RUN_AS_NODE',
+    'ELECTRON_NO_ATTACH_CONSOLE',
+    'ELECTRON_OVERRIDE_DIST_PATH',
+    'NODE_OPTIONS',
+  ];
+  for (const key of electronVars) {
+    delete env[key];
+  }
+  return env;
 }
 
 function getCwd() {
@@ -37,16 +55,17 @@ function startNextServer() {
   const cwd = getCwd();
 
   if (isDev) {
-    nextServer = spawn('npx', ['next', 'dev', '-p', String(DEV_PORT)], {
+    const nextBin = getNextBin();
+    nextServer = spawn('node', [nextBin, 'dev', '-p', String(DEV_PORT)], {
       cwd,
-      env: { ...process.env, DATABASE_URL: 'file:' + dbPath },
+      env: { ...getCleanEnv(), DATABASE_URL: 'file:' + dbPath },
       stdio: 'pipe',
     });
   } else {
     const entry = getServerEntry();
     nextServer = spawn('node', [entry], {
       cwd: path.dirname(entry),
-      env: { ...process.env, DATABASE_URL: 'file:' + dbPath, PORT: String(DEV_PORT) },
+      env: { ...getCleanEnv(), DATABASE_URL: 'file:' + dbPath, PORT: String(DEV_PORT) },
       stdio: 'pipe',
     });
   }
