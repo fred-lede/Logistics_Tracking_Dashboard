@@ -11,6 +11,8 @@ asar: false
 files:
   - electron/**/*
   - .next/standalone/**/*
+  - prisma/**/*
+  - assets/**/*
   - package.json
 
 mac:

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
@@ -53,6 +53,22 @@ function getCwd() {
     return process.cwd();
   }
   return path.join(process.resourcesPath, 'app');
+}
+
+function setupDatabase(dbPath) {
+  return new Promise((resolve, reject) => {
+    const script = path.join(__dirname, 'setup-db.cjs');
+    const proc = spawn(process.execPath, [script, dbPath], {
+      env: { ELECTRON_RUN_AS_NODE: '1' },
+      stdio: 'pipe',
+    });
+    proc.stdout.on('data', (d) => process.stdout.write('[setup-db] ' + d));
+    proc.stderr.on('data', (d) => process.stderr.write('[setup-db] ' + d));
+    proc.on('exit', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error('setup-db exited with code ' + code));
+    });
+  });
 }
 
 function startNextServer() {
@@ -145,6 +161,26 @@ function createWindow() {
   mainWindow.loadURL('http://localhost:' + DEV_PORT);
 }
 
+function createAppMenu() {
+  const template = [
+    {
+      label: app.name,
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    },
+    { role: 'editMenu' },
+    { role: 'windowMenu' },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
 function killServer() {
   if (nextServer) {
     nextServer.kill('SIGTERM');
@@ -155,6 +191,17 @@ function killServer() {
 registerNotificationIPC(ipcMain);
 
 app.whenReady().then(async () => {
+  createAppMenu();
+
+  const dbPath = getDbPath();
+  try {
+    await setupDatabase(dbPath);
+  } catch (err) {
+    console.error('[main] Database setup failed:', err.message);
+    app.quit();
+    return;
+  }
+
   startNextServer();
 
   try {
