@@ -60,10 +60,11 @@ function getCwd() {
 function setupDatabase(dbPath) {
   return new Promise((resolve, reject) => {
     const script = path.join(__dirname, 'setup-db.cjs');
-    const proc = spawn(process.execPath, [script, dbPath], {
-      env: { ELECTRON_RUN_AS_NODE: '1' },
-      stdio: 'pipe',
-    });
+    const env = { ELECTRON_RUN_AS_NODE: '1' };
+    if (!isDev) {
+      env.NODE_PATH = path.join(process.resourcesPath, 'app', '.next', 'standalone', 'node_modules');
+    }
+    const proc = spawn(process.execPath, [script, dbPath], { env, stdio: 'pipe' });
     proc.stdout.on('data', (d) => process.stdout.write('[setup-db] ' + d));
     proc.stderr.on('data', (d) => process.stderr.write('[setup-db] ' + d));
     proc.on('exit', (code) => {
