@@ -41,3 +41,4 @@ yarn-error.log*
 # Electron build output
 release/
 .next/standalone/release/
+.carrier-creds.json
