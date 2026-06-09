@@ -60,7 +60,7 @@ function getCwd() {
 function setupDatabase(dbPath) {
   return new Promise((resolve, reject) => {
     const script = path.join(__dirname, 'setup-db.cjs');
-    const env = { ELECTRON_RUN_AS_NODE: '1' };
+    const env = { ...process.env, ELECTRON_RUN_AS_NODE: '1' };
     if (!isDev) {
       env.NODE_PATH = path.join(process.resourcesPath, 'app', '.next', 'standalone', 'node_modules');
     }
