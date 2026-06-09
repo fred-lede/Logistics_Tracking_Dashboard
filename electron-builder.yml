@@ -6,9 +6,7 @@ directories:
   output: release
   buildResources: assets
 
-asar: true
-asarUnpack:
-  - ".next/standalone/**"
+asar: false
 
 files:
   - electron/**/*
