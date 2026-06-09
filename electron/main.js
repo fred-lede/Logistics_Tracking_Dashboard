@@ -63,9 +63,9 @@ function startNextServer() {
     });
   } else {
     const entry = getServerEntry();
-    nextServer = spawn('node', [entry], {
+    nextServer = spawn(process.execPath, [entry], {
       cwd: path.dirname(entry),
-      env: { ...getCleanEnv(), DATABASE_URL: 'file:' + dbPath, PORT: String(DEV_PORT) },
+      env: { ...process.env, DATABASE_URL: 'file:' + dbPath, PORT: String(DEV_PORT), ELECTRON_RUN_AS_NODE: '1' },
       stdio: 'pipe',
     });
   }
