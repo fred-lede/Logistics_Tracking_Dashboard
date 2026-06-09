@@ -56,18 +56,16 @@ export function TvCard({ trackingNumber, nickname, status, origin, destination, 
     const maxScroll = el.scrollHeight - el.clientHeight
     if (maxScroll <= 0) return
 
-    const step = 24
-    const interval = 2000
     let pos = 0
     const id = setInterval(() => {
-      pos += step
       if (pos < maxScroll) {
+        pos++
         el.scrollTop = pos
       } else {
         pos = 0
         el.scrollTop = 0
       }
-    }, interval)
+    }, 120)
 
     return () => clearInterval(id)
   }, [aiSummary, aiRootCause, aiDelayRisk])
