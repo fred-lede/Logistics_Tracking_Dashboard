@@ -38,4 +38,4 @@ linux:
     - "deb:x64"
   icon: assets/icon.png
   category: Office
-  maintainer: fred@example.com
+  maintainer: fred.yt.wang@outlook.com
