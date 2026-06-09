@@ -8,6 +8,7 @@ export async function GET() {
   return NextResponse.json({
     fedexApiKey: config?.fedexApiKey ? MASKED : '',
     fedexApiSecret: config?.fedexApiSecret ? MASKED : '',
+    fedexProduction: config?.fedexProduction ?? false,
   })
 }
 
@@ -21,10 +22,14 @@ export async function PUT(request: Request) {
   if (body.fedexApiSecret !== undefined) {
     existing.fedexApiSecret = body.fedexApiSecret === MASKED ? existing.fedexApiSecret : body.fedexApiSecret
   }
+  if (body.fedexProduction !== undefined) {
+    existing.fedexProduction = body.fedexProduction
+  }
 
   saveCarrierConfig(existing)
   return NextResponse.json({
     fedexApiKey: existing.fedexApiKey ? MASKED : '',
     fedexApiSecret: existing.fedexApiSecret ? MASKED : '',
+    fedexProduction: existing.fedexProduction ?? false,
   })
 }

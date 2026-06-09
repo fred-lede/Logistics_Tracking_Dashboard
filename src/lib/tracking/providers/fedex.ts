@@ -1,5 +1,5 @@
 import type { TrackingProvider, TrackingResult, TrackingEvent } from '../types'
-import { getFedExCredentials } from '@/lib/carrier-config'
+import { getFedExCredentials, getFedExBaseUrl } from '@/lib/carrier-config'
 
 export function safeParseEvents(json: string | null | undefined): TrackingEvent[] {
   if (!json) return []
@@ -10,10 +10,6 @@ export function safeParseEvents(json: string | null | undefined): TrackingEvent[
     return []
   }
 }
-
-const FEDEX_BASE_URL = process.env.FEDEX_ENV === 'production'
-  ? 'https://apis.fedex.com'
-  : 'https://apis-sandbox.fedex.com'
 
 interface FedExOAuthResponse {
   access_token: string
@@ -75,7 +71,7 @@ async function getAccessToken(): Promise<string> {
   }
 
   const res = await fetch(
-    `${FEDEX_BASE_URL}/oauth/token`,
+    `${getFedExBaseUrl()}/oauth/token`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -140,7 +136,7 @@ export class FedExTrackingProvider implements TrackingProvider {
   async track(trackingNumber: string): Promise<TrackingResult> {
     const token = await getAccessToken()
 
-    const res = await fetch(`${FEDEX_BASE_URL}/track/v1/trackingnumbers`, {
+    const res = await fetch(`${getFedExBaseUrl()}/track/v1/trackingnumbers`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

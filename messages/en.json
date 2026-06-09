@@ -209,7 +209,9 @@
     "apiKey": "FedEx API Key",
     "apiSecret": "FedEx API Secret",
     "save": "Save",
-    "saved": "Saved"
+    "saved": "Saved",
+    "sandboxMode": "Sandbox (testing)",
+    "prodMode": "Production (live)"
   },
   "delayRisk": {
     "level": "Risk Level",

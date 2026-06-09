@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 interface CarrierSettingsData {
   fedexApiKey: string
   fedexApiSecret: string
+  fedexProduction: boolean
 }
 
 export function CarrierSettings() {
@@ -66,6 +67,18 @@ export function CarrierSettings() {
             className={inputCls}
           />
         </div>
+
+        <label className="flex items-center gap-3 cursor-pointer">
+          <button
+            role="switch"
+            aria-checked={data.fedexProduction}
+            onClick={() => setData({ ...data, fedexProduction: !data.fedexProduction })}
+            className={`relative h-6 w-11 rounded-full transition-colors shrink-0 ${data.fedexProduction ? 'bg-amber-500' : 'bg-gray-300'}`}
+          >
+            <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ${data.fedexProduction ? 'left-full -translate-x-full' : 'left-0.5'}`} />
+          </button>
+          <span className="text-sm text-gray-700">{data.fedexProduction ? t('prodMode') : t('sandboxMode')}</span>
+        </label>
 
         <div className="flex items-center gap-3">
           <button

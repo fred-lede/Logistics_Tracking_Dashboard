@@ -209,7 +209,9 @@
     "apiKey": "FedEx API 金鑰",
     "apiSecret": "FedEx API 密鑰",
     "save": "儲存",
-    "saved": "已儲存"
+    "saved": "已儲存",
+    "sandboxMode": "沙箱模式（測試）",
+    "prodMode": "正式模式（即時）"
   },
   "delayRisk": {
     "level": "風險等級",

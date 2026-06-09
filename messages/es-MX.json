@@ -209,7 +209,9 @@
     "apiKey": "Clave API de FedEx",
     "apiSecret": "Secreto API de FedEx",
     "save": "Guardar",
-    "saved": "Guardado"
+    "saved": "Guardado",
+    "sandboxMode": "Sandbox (pruebas)",
+    "prodMode": "Producción (en vivo)"
   },
   "delayRisk": {
     "level": "Nivel de Riesgo",

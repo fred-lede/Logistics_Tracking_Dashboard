@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
 export interface CarrierConfig {
   fedexApiKey: string
   fedexApiSecret: string
+  fedexProduction?: boolean
 }
 
 function getConfigDir(): string {
@@ -43,4 +44,15 @@ export function getFedExCredentials(): { apiKey: string; apiSecret: string } {
     return { apiKey: fromFile.fedexApiKey, apiSecret: fromFile.fedexApiSecret }
   }
   return fromEnv
+}
+
+export function getFedExBaseUrl(): string {
+  if (process.env.FEDEX_ENV === 'production') {
+    return 'https://apis.fedex.com'
+  }
+  const fromFile = loadCarrierConfig()
+  if (fromFile?.fedexProduction) {
+    return 'https://apis.fedex.com'
+  }
+  return 'https://apis-sandbox.fedex.com'
 }
