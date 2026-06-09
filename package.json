@@ -15,10 +15,10 @@
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",
-    "package:mac": "electron-builder --mac",
-    "package:win": "electron-builder --win",
-    "package:linux": "electron-builder --linux",
-    "package:all": "electron-builder --mac --win --linux"
+    "package:mac": "npm run build && node scripts/rebuild-standalone-native.cjs && electron-builder --mac --publish=never",
+    "package:win": "npm run build && node scripts/rebuild-standalone-native.cjs && electron-builder --win --publish=never",
+    "package:linux": "npm run build && node scripts/rebuild-standalone-native.cjs && electron-builder --linux --publish=never",
+    "package:all": "npm run build && node scripts/rebuild-standalone-native.cjs && electron-builder --mac --win --linux --publish=never"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.81",
