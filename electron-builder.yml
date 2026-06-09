@@ -8,10 +8,7 @@ directories:
 
 asar: true
 asarUnpack:
-  - ".next/standalone/node_modules/better-sqlite3/**"
-  - ".next/standalone/node_modules/@prisma/**"
-  - ".next/standalone/node_modules/sharp/**"
-  - ".next/standalone/node_modules/@img/**"
+  - ".next/standalone/**"
 
 files:
   - electron/**/*
