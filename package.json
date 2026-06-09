@@ -8,7 +8,7 @@
     "dev": "electron .",
     "dev:next": "next dev --webpack -p 3310",
     "build": "npm run build:next && npm run build:assets",
-    "build:next": "next build && cp -R .next/static .next/standalone/.next/static && cp -R public .next/standalone/public && node scripts/clean-standalone.mjs",
+    "build:next": "next build && node scripts/post-build.cjs",
     "build:assets": "node scripts/generate-icons.mjs",
     "start": "next start -p 3100",
     "lint": "eslint",
