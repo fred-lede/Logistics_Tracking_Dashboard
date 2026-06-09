@@ -10,6 +10,7 @@ const isDev = !app.isPackaged;
 
 let mainWindow = null;
 let nextServer = null;
+let isQuitting = false;
 
 function getDbPath() {
   if (isDev) {
@@ -150,8 +151,10 @@ function createWindow() {
   });
 
   mainWindow.on('close', (e) => {
-    e.preventDefault();
-    mainWindow.hide();
+    if (!isQuitting) {
+      e.preventDefault();
+      mainWindow.hide();
+    }
   });
 
   mainWindow.on('ready-to-show', () => {
@@ -231,5 +234,6 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  isQuitting = true;
   killServer();
 });
