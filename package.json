@@ -15,9 +15,9 @@
     "postinstall": "prisma generate",
     "test": "vitest run",
     "test:watch": "vitest",
-    "package:mac": "npm run build && node scripts/rebuild-standalone-native.cjs && electron-builder --mac --publish=never",
-    "package:win": "npm run build && node scripts/rebuild-standalone-native.cjs && electron-builder --win --publish=never",
-    "package:linux": "npm run build && node scripts/rebuild-standalone-native.cjs && electron-builder --linux --publish=never",
+    "package:mac": "npm run build && node scripts/rebuild-standalone-native.cjs darwin && electron-builder --mac --publish=never",
+    "package:win": "npm run build && node scripts/rebuild-standalone-native.cjs win32 && electron-builder --win --publish=never",
+    "package:linux": "npm run build && node scripts/rebuild-standalone-native.cjs linux && electron-builder --linux --publish=never",
     "package:all": "npm run build && node scripts/rebuild-standalone-native.cjs && electron-builder --mac --win --linux --publish=never"
   },
   "dependencies": {

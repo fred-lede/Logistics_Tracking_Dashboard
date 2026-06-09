@@ -73,6 +73,14 @@ async function runRebuild() {
 async function main() {
   console.log('[rebuild-native] === Standalone native module rebuild ===');
 
+  const targetPlatform = process.argv[2];
+  const hostPlatform = process.platform;
+  if (targetPlatform && targetPlatform !== hostPlatform) {
+    console.error('[rebuild-native] Cross-compile detected: host=' + hostPlatform + ' target=' + targetPlatform);
+    console.error('[rebuild-native] Native modules cannot be cross-compiled. Use CI (native runners) instead.');
+    process.exit(1);
+  }
+
   if (!fs.existsSync(standaloneNativeDir)) {
     console.error('[rebuild-native] Standalone better-sqlite3 not found at', standaloneNativeDir);
     process.exit(1);
