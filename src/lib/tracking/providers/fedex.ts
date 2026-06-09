@@ -1,4 +1,5 @@
 import type { TrackingProvider, TrackingResult, TrackingEvent } from '../types'
+import { getFedExCredentials } from '@/lib/carrier-config'
 
 export function safeParseEvents(json: string | null | undefined): TrackingEvent[] {
   if (!json) return []
@@ -63,21 +64,15 @@ interface FedExTrackingOutput {
 
 let cachedToken: { accessToken: string; expiresAt: number } | null = null
 
-function requireEnv(name: string): string {
-  const value = process.env[name]
-  if (!value) {
-    throw new Error(`Missing ${name} environment variable`)
-  }
-  return value
-}
-
 async function getAccessToken(): Promise<string> {
   if (cachedToken && Date.now() < cachedToken.expiresAt) {
     return cachedToken.accessToken
   }
 
-  const apiKey = requireEnv('FEDEX_API_KEY')
-  const apiSecret = requireEnv('FEDEX_API_SECRET')
+  const { apiKey, apiSecret } = getFedExCredentials()
+  if (!apiKey || !apiSecret) {
+    throw new Error('FedEx API credentials not configured. Set them in Settings > Carrier API Keys.')
+  }
 
   const res = await fetch(
     `${FEDEX_BASE_URL}/oauth/token`,

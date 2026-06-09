@@ -203,6 +203,14 @@
   "testNotification": "发送 AI 测试通知",
   "testNotifSuccess": "测试通知已发送"
   },
+  "carrier": {
+    "title": "物流商 API 密钥",
+    "hint": "设置 FedEx 沙箱 API 凭证以进行包裹追踪",
+    "apiKey": "FedEx API 密钥",
+    "apiSecret": "FedEx API 秘钥",
+    "save": "保存",
+    "saved": "已保存"
+  },
   "delayRisk": {
     "level": "风险等级",
     "low": "低",

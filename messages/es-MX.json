@@ -203,6 +203,14 @@
   "testNotification": "Enviar notificación de prueba IA",
   "testNotifSuccess": "Notificación de prueba enviada"
   },
+  "carrier": {
+    "title": "Claves API del transportista",
+    "hint": "Configure las credenciales de la API del sandbox de FedEx para el seguimiento de paquetes",
+    "apiKey": "Clave API de FedEx",
+    "apiSecret": "Secreto API de FedEx",
+    "save": "Guardar",
+    "saved": "Guardado"
+  },
   "delayRisk": {
     "level": "Nivel de Riesgo",
     "low": "Bajo",

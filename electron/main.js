@@ -43,6 +43,7 @@ function getNextServerEnv(dbPath, port) {
   }
   env.DATABASE_URL = 'file:' + dbPath;
   env.ELECTRON_RUN_AS_NODE = '1';
+  env.CARRIER_CONFIG_DIR = isDev ? process.cwd() : app.getPath('userData');
   if (port) {
     env.PORT = String(port);
   }

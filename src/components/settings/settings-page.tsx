@@ -7,6 +7,7 @@ import { ChannelCard } from './channel-card'
 import { ChannelDialog } from './channel-dialog'
 import { AddChannelForm } from './add-channel-form'
 import { LLMSettings } from './llm-settings'
+import { CarrierSettings } from './carrier-settings'
 import { LocaleSwitcher } from '@/components/locale-switcher'
 import { playAlertSound } from '@/components/tv/tv-sound'
 
@@ -167,6 +168,7 @@ export function SettingsPage() {
 
       {/* LLM Enhancement */}
       <LLMSettings />
+      <CarrierSettings />
 
       {/* Global Toggle */}
       <div className="mb-6 rounded-xl border border-gray-200 p-5">

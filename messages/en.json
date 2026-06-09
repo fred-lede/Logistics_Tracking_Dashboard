@@ -203,6 +203,14 @@
   "testNotification": "Send AI Test Notification",
   "testNotifSuccess": "Test notification sent"
   },
+  "carrier": {
+    "title": "Carrier API Keys",
+    "hint": "Configure FedEx sandbox API credentials for package tracking",
+    "apiKey": "FedEx API Key",
+    "apiSecret": "FedEx API Secret",
+    "save": "Save",
+    "saved": "Saved"
+  },
   "delayRisk": {
     "level": "Risk Level",
     "low": "Low",
