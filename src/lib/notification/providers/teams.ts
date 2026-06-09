@@ -83,6 +83,14 @@ function buildGraphHtml(message: NotificationMessage): string {
   return `<h3>📊 ${getSummaryTitle(message)}</h3><table border="1"><tr><th>Status</th><th>Package</th><th>Destination</th><th>ETA</th>${message.packages?.some(p => p.aiSummary) ? '<th>AI Summary</th>' : ''}</tr>${rows}</table>`
 }
 
+const FETCH_TIMEOUT_MS = 15_000
+
+function fetchWithTimeout(url: string, init: RequestInit): Promise<Response> {
+  const ac = new AbortController()
+  const timer = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS)
+  return fetch(url, { ...init, signal: ac.signal }).finally(() => clearTimeout(timer))
+}
+
 export const teamsProvider: NotificationProvider = {
   channelType: 'teams',
 
@@ -101,7 +109,7 @@ export const teamsProvider: NotificationProvider = {
           return { success: false, error: 'Graph API credentials not configured' }
         }
 
-        const tokenRes = await fetch(
+        const tokenRes = await fetchWithTimeout(
           `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
           {
             method: 'POST',
@@ -123,7 +131,7 @@ export const teamsProvider: NotificationProvider = {
         const html = buildGraphHtml(message)
 
         if (channelId && teamId) {
-          await fetch(
+          await fetchWithTimeout(
             `https://graph.microsoft.com/v1.0/teams/${teamId}/channels/${channelId}/messages`,
             {
               method: 'POST',
@@ -148,7 +156,7 @@ export const teamsProvider: NotificationProvider = {
       }
 
       const card = buildAdaptiveCard(message)
-      const res = await fetch(webhookUrl, {
+      const res = await fetchWithTimeout(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(card),

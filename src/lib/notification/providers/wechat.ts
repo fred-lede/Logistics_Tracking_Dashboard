@@ -58,6 +58,8 @@ function buildWechatMarkdown(message: NotificationMessage): string {
   return md
 }
 
+const FETCH_TIMEOUT_MS = 15_000
+
 export const wechatProvider: NotificationProvider = {
   channelType: 'wechat',
 
@@ -73,9 +75,17 @@ export const wechatProvider: NotificationProvider = {
           return { success: false, error: 'Corp ID, Corp Secret, and Agent ID required' }
         }
 
-        const tokenRes = await fetch(
-          `https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${corpId}&corpsecret=${corpSecret}`
-        )
+        const ac0 = new AbortController()
+        const t0 = setTimeout(() => ac0.abort(), FETCH_TIMEOUT_MS)
+        let tokenRes
+        try {
+          tokenRes = await fetch(
+            `https://qyapi.weixin.qq.com/cgi-bin/gettoken?corpid=${corpId}&corpsecret=${corpSecret}`,
+            { signal: ac0.signal }
+          )
+        } finally {
+          clearTimeout(t0)
+        }
         const tokenData = await tokenRes.json()
         if (!tokenData.access_token) {
           return { success: false, error: `Failed to get access token: ${tokenData.errmsg || tokenData.errcode}` }
@@ -86,22 +96,29 @@ export const wechatProvider: NotificationProvider = {
 
         for (const contact of contacts) {
           if (!contact.identifier) continue
-          const res = await fetch(
-            `https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=${accessToken}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                touser: contact.identifier,
-                msgtype: 'markdown',
-                markdown: { content },
-                agentid: Number(agentId),
-              }),
+          const ac = new AbortController()
+          const timer = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS)
+          try {
+            const res = await fetch(
+              `https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=${accessToken}`,
+              {
+                signal: ac.signal,
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  touser: contact.identifier,
+                  msgtype: 'markdown',
+                  markdown: { content },
+                  agentid: Number(agentId),
+                }),
+              }
+            )
+            const data = await res.json()
+            if (data.errcode !== 0) {
+              lastError = `Failed for ${contact.name}: ${data.errmsg}`
             }
-          )
-          const data = await res.json()
-          if (data.errcode !== 0) {
-            lastError = `Failed for ${contact.name}: ${data.errmsg}`
+          } finally {
+            clearTimeout(timer)
           }
         }
 
@@ -114,14 +131,22 @@ export const wechatProvider: NotificationProvider = {
         return { success: false, error: 'Webhook URL not configured' }
       }
 
-      const res = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          msgtype: 'markdown',
-          markdown: { content: buildWechatMarkdown(message) },
-        }),
-      })
+      const ac = new AbortController()
+      const timer = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS)
+      let res
+      try {
+        res = await fetch(webhookUrl, {
+          signal: ac.signal,
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            msgtype: 'markdown',
+            markdown: { content: buildWechatMarkdown(message) },
+          }),
+        })
+      } finally {
+        clearTimeout(timer)
+      }
 
       return res.ok
         ? { success: true }

@@ -119,24 +119,34 @@ export function LLMSettings() {
     if (!setting) return
     setTestStatus('testing')
     setTestError(null)
-    const res = await fetch('/api/llm/test', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: setting.provider,
-        providerLabel: setting.providerLabel,
-        apiKey: setting.apiKey === MASKED_KEY ? undefined : setting.apiKey,
-        baseUrl: setting.baseUrl,
-        model: setting.model,
-        compatMode: setting.compatMode,
-      }),
-    })
-    const data = await res.json()
-    if (data.success) {
-      setTestStatus('success')
-    } else {
+    const ac = new AbortController()
+    const timer = setTimeout(() => ac.abort(), 35_000)
+    try {
+      const res = await fetch('/api/llm/test', {
+        signal: ac.signal,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: setting.provider,
+          providerLabel: setting.providerLabel,
+          apiKey: setting.apiKey === MASKED_KEY ? undefined : setting.apiKey,
+          baseUrl: setting.baseUrl,
+          model: setting.model,
+          compatMode: setting.compatMode,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setTestStatus('success')
+      } else {
+        setTestStatus('failed')
+        setTestError(data.error ?? 'Unknown error')
+      }
+    } catch (err) {
       setTestStatus('failed')
-      setTestError(data.error ?? 'Unknown error')
+      setTestError(err instanceof DOMException && err.name === 'AbortError' ? 'Request timed out' : 'Network error')
+    } finally {
+      clearTimeout(timer)
     }
   }
 
@@ -147,27 +157,37 @@ export function LLMSettings() {
     setNotifTestSummary(null)
     const cookieMatch = document.cookie.match(/(?:^|;\s*)locale=([^;]+)/)
     const uiLocale = cookieMatch?.[1] ?? 'en'
-    const res = await fetch('/api/llm/test-notification', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        provider: setting.provider,
-        providerLabel: setting.providerLabel,
-        apiKey: setting.apiKey === MASKED_KEY ? undefined : setting.apiKey,
-        baseUrl: setting.baseUrl,
-        model: setting.model,
-        compatMode: setting.compatMode,
-        locale: setting.locale || uiLocale,
-      }),
-    })
-    const data = await res.json()
-    if (data.success) {
-      setNotifTestStatus('success')
-      setNotifTestSummary(data.aiSummary ?? null)
-    } else {
+    const ac = new AbortController()
+    const timer = setTimeout(() => ac.abort(), 90_000)
+    try {
+      const res = await fetch('/api/llm/test-notification', {
+        signal: ac.signal,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: setting.provider,
+          providerLabel: setting.providerLabel,
+          apiKey: setting.apiKey === MASKED_KEY ? undefined : setting.apiKey,
+          baseUrl: setting.baseUrl,
+          model: setting.model,
+          compatMode: setting.compatMode,
+          locale: setting.locale || uiLocale,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setNotifTestStatus('success')
+        setNotifTestSummary(data.aiSummary ?? null)
+      } else {
+        setNotifTestStatus('failed')
+        setNotifTestError(data.error ?? 'Unknown error')
+        setNotifTestSummary(data.aiSummary ?? null)
+      }
+    } catch (err) {
       setNotifTestStatus('failed')
-      setNotifTestError(data.error ?? 'Unknown error')
-      setNotifTestSummary(data.aiSummary ?? null)
+      setNotifTestError(err instanceof DOMException && err.name === 'AbortError' ? 'Request timed out' : 'Network error')
+    } finally {
+      clearTimeout(timer)
     }
   }
 

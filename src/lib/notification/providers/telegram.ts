@@ -56,6 +56,8 @@ function buildTelegramText(message: NotificationMessage): string {
   return lines.join('\n')
 }
 
+const FETCH_TIMEOUT_MS = 15_000
+
 export const telegramProvider: NotificationProvider = {
   channelType: 'telegram',
 
@@ -71,21 +73,28 @@ export const telegramProvider: NotificationProvider = {
 
       for (const contact of contacts) {
         if (!contact.identifier) continue
-        const res = await fetch(
-          `https://api.telegram.org/bot${botToken}/sendMessage`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              chat_id: contact.identifier,
-              text,
-              parse_mode: 'HTML',
-            }),
+        const ac = new AbortController()
+        const timer = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS)
+        try {
+          const res = await fetch(
+            `https://api.telegram.org/bot${botToken}/sendMessage`,
+            {
+              signal: ac.signal,
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chat_id: contact.identifier,
+                text,
+                parse_mode: 'HTML',
+              }),
+            }
+          )
+          if (!res.ok) {
+            const body = await res.text().catch(() => '')
+            lastError = `Failed for ${contact.name}: ${res.status} ${body}`
           }
-        )
-        if (!res.ok) {
-          const body = await res.text().catch(() => '')
-          lastError = `Failed for ${contact.name}: ${res.status} ${body}`
+        } finally {
+          clearTimeout(timer)
         }
       }
 

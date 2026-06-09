@@ -60,6 +60,8 @@ function buildWhatsAppText(message: NotificationMessage): string {
   return text
 }
 
+const FETCH_TIMEOUT_MS = 15_000
+
 export const whatsappProvider: NotificationProvider = {
   channelType: 'whatsapp',
 
@@ -76,24 +78,31 @@ export const whatsappProvider: NotificationProvider = {
 
       for (const contact of contacts) {
         if (!contact.identifier) continue
-        const res = await fetch(
-          `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              messaging_product: 'whatsapp',
-              to: contact.identifier,
-              type: 'text',
-              text: { body: text },
-            }),
+        const ac = new AbortController()
+        const timer = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS)
+        try {
+          const res = await fetch(
+            `https://graph.facebook.com/v22.0/${phoneNumberId}/messages`,
+            {
+              signal: ac.signal,
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                messaging_product: 'whatsapp',
+                to: contact.identifier,
+                type: 'text',
+                text: { body: text },
+              }),
+            }
+          )
+          if (!res.ok) {
+            lastError = `Failed for ${contact.name}: ${res.status}`
           }
-        )
-        if (!res.ok) {
-          lastError = `Failed for ${contact.name}: ${res.status}`
+        } finally {
+          clearTimeout(timer)
         }
       }
 

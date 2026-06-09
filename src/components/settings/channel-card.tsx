@@ -82,11 +82,17 @@ export function ChannelCard({ channel, channelLabel, onToggle, onEdit, onDelete,
     setTesting(true)
     setTestResult(null)
     try {
-      const res = await fetch(`/api/notifications/channels/${channel.id}/test`, { method: 'POST' })
-      const data = await res.json()
-      setTestResult(data)
-    } catch {
-      setTestResult({ success: false, error: 'Network error' })
+      const ac = new AbortController()
+      const timer = setTimeout(() => ac.abort(), 20_000)
+      try {
+        const res = await fetch(`/api/notifications/channels/${channel.id}/test`, { method: 'POST', signal: ac.signal })
+        const data = await res.json()
+        setTestResult(data)
+      } finally {
+        clearTimeout(timer)
+      }
+    } catch (err) {
+      setTestResult({ success: false, error: err instanceof DOMException && err.name === 'AbortError' ? 'Request timed out' : 'Network error' })
     } finally {
       setTesting(false)
       setTimeout(() => setTestResult(null), 5000)
