@@ -1,5 +1,10 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { FedExTrackingProvider } from '../providers/fedex'
+
+vi.mock('../../carrier-config', () => ({
+  getFedExCredentials: () => ({ apiKey: '', apiSecret: '' }),
+  getFedExBaseUrl: () => 'https://apis-sandbox.fedex.com',
+}))
 
 describe('FedExTrackingProvider', () => {
   it('requires API credentials to be set', async () => {

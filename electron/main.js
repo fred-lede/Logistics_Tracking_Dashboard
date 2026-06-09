@@ -190,6 +190,25 @@ app.whenReady().then(async () => {
     return;
   }
 
+  // Copy .carrier-creds.json to userData if not present
+  if (!isDev) {
+    const userDataPath = app.getPath('userData');
+    const targetPath = path.join(userDataPath, '.carrier-creds.json');
+    if (!fs.existsSync(targetPath)) {
+      const bundledPath = path.join(process.resourcesPath, 'app', '.carrier-creds.json');
+      if (fs.existsSync(bundledPath)) {
+        try {
+          fs.cpSync(bundledPath, targetPath);
+          log('Copied .carrier-creds.json to', targetPath);
+        } catch (e) {
+          log('Failed to copy .carrier-creds.json:', e.message);
+        }
+      } else {
+        log('No bundled .carrier-creds.json found at', bundledPath);
+      }
+    }
+  }
+
   startNextServer();
   log('Waiting for server on port', DEV_PORT);
 

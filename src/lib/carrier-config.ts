@@ -1,4 +1,5 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { join, dirname } from 'node:path'
 
 export interface CarrierConfig {
   fedexApiKey: string
@@ -7,7 +8,15 @@ export interface CarrierConfig {
 }
 
 function getConfigDir(): string {
-  return process.env.CARRIER_CONFIG_DIR || process.cwd()
+  if (process.env.CARRIER_CONFIG_DIR) return process.env.CARRIER_CONFIG_DIR
+  let dir = process.cwd()
+  for (let i = 0; i < 4; i++) {
+    if (existsSync(join(dir, '.carrier-creds.json'))) return dir
+    const parent = dirname(dir)
+    if (parent === dir) break
+    dir = parent
+  }
+  return process.cwd()
 }
 
 function getConfigPath(): string {

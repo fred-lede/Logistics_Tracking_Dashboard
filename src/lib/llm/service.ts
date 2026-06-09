@@ -1,10 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import { getLLMProvider } from './registry'
-import { createOpenAIProvider } from './providers/openai'
-import { createAnthropicProvider } from './providers/anthropic'
-import { createGoogleProvider } from './providers/google'
-import { createOllamaProvider } from './providers/ollama'
-import { createCustomProvider } from './providers/custom'
 import type { AnalysisResult, DelayRisk } from './types'
 
 const EXCEPTION_STATUSES = ['EXCEPTION', 'DELAYED', 'RETURN_TO_SENDER']
@@ -97,24 +92,34 @@ function buildTranslatePrompt(text: string, targetLang: string): string {
 ${text}`
 }
 
-export function resolveProvider(providerName: string, apiKey: string | null, baseUrl: string | null, model: string | null, providerLabel?: string | null, extra?: { compatMode?: string }) {
-  switch (providerName) {
-    case 'openai':
-      if (!apiKey) return null
-      return createOpenAIProvider(apiKey, model ?? undefined)
-    case 'anthropic':
-      if (!apiKey) return null
-      return createAnthropicProvider(apiKey, model ?? undefined)
-    case 'google':
-      if (!apiKey) return null
-      return createGoogleProvider(apiKey, model ?? undefined)
-    case 'ollama':
-      return createOllamaProvider(baseUrl ?? undefined, model ?? undefined)
-    case 'custom':
-      if (!baseUrl) return null
-      return createCustomProvider(baseUrl, model ?? 'gpt-4o-mini', apiKey, providerLabel, extra?.compatMode)
-    default:
-      return getLLMProvider(providerName)
+export async function resolveProvider(providerName: string, apiKey: string | null, baseUrl: string | null, model: string | null, providerLabel?: string | null, extra?: { compatMode?: string }) {
+  try {
+    switch (providerName) {
+      case 'openai':
+        if (!apiKey) return null
+        const { createOpenAIProvider } = await import('./providers/openai')
+        return createOpenAIProvider(apiKey, model ?? undefined)
+      case 'anthropic':
+        if (!apiKey) return null
+        const { createAnthropicProvider } = await import('./providers/anthropic')
+        return createAnthropicProvider(apiKey, model ?? undefined)
+      case 'google':
+        if (!apiKey) return null
+        const { createGoogleProvider } = await import('./providers/google')
+        return createGoogleProvider(apiKey, model ?? undefined)
+      case 'ollama':
+        const { createOllamaProvider } = await import('./providers/ollama')
+        return createOllamaProvider(baseUrl ?? undefined, model ?? undefined)
+      case 'custom':
+        if (!baseUrl) return null
+        const { createCustomProvider } = await import('./providers/custom')
+        return createCustomProvider(baseUrl, model ?? 'gpt-4o-mini', apiKey, providerLabel, extra?.compatMode)
+      default:
+        return getLLMProvider(providerName)
+    }
+  } catch (err) {
+    console.error(`[llm] Failed to load provider "${providerName}":`, err)
+    return null
   }
 }
 
@@ -146,7 +151,7 @@ export async function analyzePackage(
     }
   }
 
-  const provider = resolveProvider(settings.provider, settings.apiKey, settings.baseUrl, settings.model, settings.providerLabel, { compatMode: settings.compatMode ?? 'chat' })
+  const provider = await resolveProvider(settings.provider, settings.apiKey, settings.baseUrl, settings.model, settings.providerLabel, { compatMode: settings.compatMode ?? 'chat' })
   if (!provider) return null
 
   const isException = EXCEPTION_STATUSES.includes(pkg.status ?? '')
@@ -226,7 +231,7 @@ export async function translateSummary(
   const settings = await prisma.lLMSetting.findUnique({ where: { id: 'global' } })
   if (!settings?.enabled) return text
 
-  const provider = resolveProvider(settings.provider, settings.apiKey, settings.baseUrl, settings.model, settings.providerLabel, { compatMode: settings.compatMode ?? 'chat' })
+  const provider = await resolveProvider(settings.provider, settings.apiKey, settings.baseUrl, settings.model, settings.providerLabel, { compatMode: settings.compatMode ?? 'chat' })
   if (!provider) return text
 
   try {
@@ -245,8 +250,8 @@ export async function testConnection(
   providerLabel?: string | null,
   compatMode?: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const provider = resolveProvider(providerName, apiKey, baseUrl, model, providerLabel, { compatMode })
-  if (!provider) return { success: false, error: 'Invalid provider or missing required fields' }
+  const provider = await resolveProvider(providerName, apiKey, baseUrl, model, providerLabel, { compatMode })
+  if (!provider) return { success: false, error: `Provider "${providerName}" failed to initialize` }
 
   try {
     await provider.generateText('Say "OK" in one word.', { maxTokens: 10, timeout: LLM_TIMEOUT_MS })

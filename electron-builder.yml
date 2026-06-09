@@ -16,6 +16,7 @@ files:
   - prisma/**/*
   - assets/**/*
   - package.json
+  - .carrier-creds.json
   - "!.next/standalone/release/**"
   - "!.next/standalone/docs/**"
   - "!.next/standalone/src/**"
@@ -25,7 +26,7 @@ files:
   - "!.next/standalone/dev.db*"
   - "!node_modules/**"
   - "!**/*.map"
-  - "!**/test/**"
+  - "!src/test/**"
   - "!**/tests/**"
   - "!**/__tests__/**"
   - "!**/benchmark/**"
@@ -35,7 +36,6 @@ files:
   - "!TASK.md"
   - "!README.md"
   - "!.env*"
-  - "!.carrier-creds.json"
   - "!*.tsbuildinfo"
   - "!scripts/**"
   - "!src/**"

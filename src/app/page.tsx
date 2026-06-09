@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 import { AddPackageForm } from '@/components/add-package-form'
 import { PackageCard } from '@/components/package-card'
 import { LocaleSwitcher } from '@/components/locale-switcher'
@@ -50,8 +50,11 @@ export default function DashboardPage() {
   const [visible, setVisible] = useState(true)
   const [statsFilter, setStatsFilter] = useState<string | null>(null)
   const [tvMode, setTvMode] = useState(false)
+  const [translatedAI, setTranslatedAI] = useState<Record<string, { summary: string | null; rootCause: string | null }>>({})
+  const locale = useLocale()
 
   useEffect(() => {
+    setTranslatedAI({})
     let cancelled = false
     fetch('/api/packages')
       .then((res) => (res.ok ? res.json() : []))
@@ -60,6 +63,29 @@ export default function DashboardPage() {
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [ct])
+
+  useEffect(() => {
+    if (locale === 'en') return
+    const items = packages
+      .filter((p) => p.aiSummary || p.aiRootCause)
+      .map((p) => ({ id: p.id, summary: p.aiSummary, rootCause: p.aiRootCause }))
+    if (items.length === 0) return
+
+    fetch('/api/llm/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items, locale }),
+    })
+      .then((res) => (res.ok ? res.json() : { items: [] }))
+      .then((data) => {
+        const map: Record<string, { summary: string | null; rootCause: string | null }> = {}
+        for (const item of data.items as { id: string; summary: string | null; rootCause: string | null }[]) {
+          map[item.id] = { summary: item.summary, rootCause: item.rootCause }
+        }
+        setTranslatedAI(map)
+      })
+      .catch(() => {})
+  }, [locale, packages])
 
   const fetchPackages = useCallback(async () => {
     const res = await fetch('/api/packages')
@@ -108,6 +134,15 @@ export default function DashboardPage() {
     }
     return list
   }, [packages, search, statsFilter])
+
+  const displayPackages = useMemo(() => {
+    if (Object.keys(translatedAI).length === 0) return filteredPackages
+    return filteredPackages.map((pkg) => ({
+      ...pkg,
+      aiSummary: translatedAI[pkg.id]?.summary ?? pkg.aiSummary,
+      aiRootCause: translatedAI[pkg.id]?.rootCause ?? pkg.aiRootCause,
+    }))
+  }, [filteredPackages, translatedAI])
 
   // Page Visibility API — pause/resume auto-refresh
   useEffect(() => {
@@ -246,7 +281,7 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredPackages.map((pkg) => (
+          {displayPackages.map((pkg) => (
             <PackageCard
               key={pkg.id}
               pkg={pkg}

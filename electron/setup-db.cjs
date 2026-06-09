@@ -108,8 +108,27 @@ db.exec(`
   );
 
   INSERT OR IGNORE INTO "NotificationSetting" ("id") VALUES ('global');
-  INSERT OR IGNORE INTO "LLMSetting" ("id") VALUES ('global');
+  INSERT OR IGNORE INTO "LLMSetting" ("id", "enabled", "updatedAt") VALUES ('global', 1, (strftime('%Y-%m-%dT%H:%M:%f', 'now') || '+00:00'));
 `);
+
+// Seed LLM settings from bundled config
+try {
+  const fs = require('fs');
+  const path = require('path');
+  const settingsPath = path.join(__dirname, '..', '.next', 'standalone', '.llm-settings.json');
+  if (fs.existsSync(settingsPath)) {
+    const cfg = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+    const keys = Object.keys(cfg).filter(k => cfg[k] != null);
+    if (keys.length > 0) {
+      const sets = keys.map(k => `"${k}"=?`).join(',');
+      const vals = keys.map(k => cfg[k]);
+      db.prepare(`UPDATE LLMSetting SET ${sets}, "updatedAt"=? WHERE id='global'`).run(...vals, new Date().toISOString());
+      console.log('[setup-db] Seeded LLM settings from', settingsPath);
+    }
+  }
+} catch (e) {
+  console.log('[setup-db] LLM seed skipped:', e.message);
+}
 
 db.close();
 console.log('[setup-db] Ready');
