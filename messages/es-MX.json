@@ -205,7 +205,7 @@
   },
   "carrier": {
     "title": "Claves API del transportista",
-    "hint": "Configure las credenciales de la API del sandbox de FedEx para el seguimiento de paquetes",
+    "hint": "Configure las credenciales de la API de FedEx para el seguimiento de paquetes",
     "apiKey": "Clave API de FedEx",
     "apiSecret": "Secreto API de FedEx",
     "save": "Guardar",

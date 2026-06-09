@@ -205,7 +205,7 @@
   },
   "carrier": {
     "title": "Carrier API Keys",
-    "hint": "Configure FedEx sandbox API credentials for package tracking",
+    "hint": "Configure FedEx API credentials for package tracking",
     "apiKey": "FedEx API Key",
     "apiSecret": "FedEx SECRET Key",
     "save": "Save",
