@@ -207,7 +207,7 @@
     "title": "Carrier API Keys",
     "hint": "Configure FedEx sandbox API credentials for package tracking",
     "apiKey": "FedEx API Key",
-    "apiSecret": "FedEx API Secret",
+    "apiSecret": "FedEx SECRET Key",
     "save": "Save",
     "saved": "Saved",
     "sandboxMode": "Sandbox (testing)",
