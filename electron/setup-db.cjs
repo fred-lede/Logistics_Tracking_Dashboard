@@ -1,4 +1,11 @@
-const Database = require('better-sqlite3');
+let Database;
+try {
+  Database = require('better-sqlite3');
+} catch {
+  const standaloneModules = require('path').join(__dirname, '..', '.next', 'standalone', 'node_modules');
+  require('module').paths.push(standaloneModules);
+  Database = require('better-sqlite3');
+}
 
 const dbPath = process.argv[2];
 if (!dbPath) {
