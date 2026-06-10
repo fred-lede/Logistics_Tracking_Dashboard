@@ -1,7 +1,27 @@
-import { describe, expect, it } from 'vitest'
-import { buildServerUrls } from '@/lib/system-network'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+
+const mockNetworkInterfaces = vi.fn()
+
+vi.mock(import('node:os'), async (importOriginal) => {
+  const actual = await importOriginal<typeof import('node:os')>()
+
+  return {
+    ...actual,
+    default: {
+      ...actual,
+      networkInterfaces: mockNetworkInterfaces,
+    },
+    networkInterfaces: mockNetworkInterfaces,
+  }
+})
+
+const { buildServerUrls, getLanIPv4Addresses } = await import('@/lib/system-network')
 
 describe('system network helpers', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
   it('always includes localhost url', () => {
     expect(buildServerUrls(3310, [])).toContain('http://localhost:3310')
   })
@@ -12,5 +32,19 @@ describe('system network helpers', () => {
       'http://192.168.1.20:3310',
       'http://10.0.0.5:3310',
     ])
+  })
+
+  it('filters lan IPv4 addresses from network interfaces safely', () => {
+    mockNetworkInterfaces.mockReturnValue({
+      eth0: [
+        { address: '192.168.1.20', family: 'IPv4', internal: false },
+        undefined,
+        null,
+      ],
+      lo: [{ address: '127.0.0.1', family: 'IPv4', internal: true }],
+      wifi: [{ address: 'fe80::1', family: 'IPv6', internal: false }],
+    } as ReturnType<typeof mockNetworkInterfaces>)
+
+    expect(getLanIPv4Addresses()).toEqual(['192.168.1.20'])
   })
 })
