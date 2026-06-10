@@ -1,21 +1,32 @@
 import fs from 'node:fs'
 import { createRequire } from 'node:module'
 import path from 'node:path'
-import initSqlJs, { Database, SqlJsStatic } from 'sql.js'
 import { schemaSql } from './schema'
 
 type SqlValue = string | number | Uint8Array | null
+type SqlJsStatic = {
+  Database: new (data?: Uint8Array | Buffer) => Database
+}
+
+type Database = {
+  run(sql: string, params?: SqlValue[] | Record<string, SqlValue>): Database
+  prepare(sql: string, params?: SqlValue[] | Record<string, SqlValue>): Statement
+  export(): Uint8Array
+}
+
+type Statement = {
+  step(): boolean
+  getAsObject(): Record<string, unknown>
+  free(): void
+}
 
 let sqlPromise: Promise<SqlJsStatic> | null = null
 const storePromises = new Map<string, Promise<SqlJsStore>>()
 
-function locateSqlJsFile(file: string): string {
-  const require = createRequire(import.meta.url)
-  return path.join(path.dirname(require.resolve('sql.js/dist/sql-wasm.wasm')), file)
-}
-
 function getSqlJs(): Promise<SqlJsStatic> {
-  sqlPromise ??= initSqlJs({ locateFile: locateSqlJsFile })
+  const require = createRequire(import.meta.url)
+  const initSqlJs = require('sql.js/dist/sql-asm.js') as () => Promise<SqlJsStatic>
+  sqlPromise ??= initSqlJs()
   return sqlPromise
 }
 
