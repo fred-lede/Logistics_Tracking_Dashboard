@@ -37,19 +37,35 @@ copyDir(
 );
 cleanStandalone();
 
-// Export LLM settings from dev.db for packaged app seeding
-try {
-  const Database = require('better-sqlite3');
-  const db = new Database(path.resolve('dev.db'));
-  const row = db.prepare('SELECT provider, "providerLabel", apiKey, baseUrl, model, "compatMode", locale FROM LLMSetting WHERE id = ?').get('global');
-  db.close();
-  if (row) {
-    const outPath = path.join(standaloneDir, '.llm-settings.json');
-    fs.writeFileSync(outPath, JSON.stringify(row, null, 2));
-    console.log('[post-build] Exported LLM settings →', outPath);
+async function exportLlmSettings() {
+  try {
+    const dbPath = path.resolve('dev.db');
+    if (!fs.existsSync(dbPath)) return;
+
+    const initSqlJs = require('sql.js/dist/sql-asm.js');
+    const SQL = await initSqlJs();
+    const db = new SQL.Database(fs.readFileSync(dbPath));
+    const result = db.exec('SELECT provider, "providerLabel", apiKey, baseUrl, model, "compatMode", locale FROM LLMSetting WHERE id = $id', {
+      $id: 'global',
+    });
+    db.close();
+
+    const columns = result[0]?.columns;
+    const values = result[0]?.values[0];
+    if (columns && values) {
+      const row = Object.fromEntries(columns.map((column, index) => [column, values[index]]));
+      const outPath = path.join(standaloneDir, '.llm-settings.json');
+      fs.writeFileSync(outPath, JSON.stringify(row, null, 2));
+      console.log('[post-build] Exported LLM settings →', outPath);
+    }
+  } catch (e) {
+    console.log('[post-build] LLM settings export skipped:', e.message);
   }
-} catch (e) {
-  console.log('[post-build] LLM settings export skipped:', e.message);
 }
 
-console.log('[post-build] Done');
+exportLlmSettings()
+  .then(() => console.log('[post-build] Done'))
+  .catch((e) => {
+    console.error('[post-build] Failed:', e);
+    process.exit(1);
+  });

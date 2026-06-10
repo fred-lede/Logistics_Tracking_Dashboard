@@ -66,25 +66,6 @@ function getCwd() {
   return path.join(process.resourcesPath, 'app');
 }
 
-function setupDatabase(dbPath) {
-  return new Promise((resolve, reject) => {
-    const script = path.join(__dirname, 'setup-db.cjs');
-    const env = { ...process.env, ELECTRON_RUN_AS_NODE: '1' };
-    if (!isDev) {
-      env.NODE_PATH = path.join(process.resourcesPath, 'app', '.next', 'standalone', 'node_modules');
-    }
-    log('setup-db: spawning', script, 'dbPath:', dbPath);
-    const proc = spawn(process.execPath, [script, dbPath], { env, stdio: 'pipe' });
-    let stderr = '';
-    proc.stdout.on('data', (d) => log('[setup-db] ' + d.toString().trim()));
-    proc.stderr.on('data', (d) => { stderr += d.toString(); log('[setup-db:err] ' + d.toString().trim()); });
-    proc.on('exit', (code) => {
-      if (code === 0) resolve();
-      else reject(new Error('setup-db exited with code ' + code + (stderr ? ': ' + stderr.trim() : '')));
-    });
-  });
-}
-
 function startNextServer() {
   const dbPath = getDbPath();
   const cwd = getCwd();
@@ -180,15 +161,6 @@ app.whenReady().then(async () => {
 
   const dbPath = getDbPath();
   log('dbPath:', dbPath);
-
-  try {
-    await setupDatabase(dbPath);
-    log('Database setup complete');
-  } catch (err) {
-    log('Database setup failed:', err.message);
-    fatalError('Database setup failed: ' + err.message + '\n\nLog file: ' + logPath());
-    return;
-  }
 
   // Copy .carrier-creds.json to userData if not present
   if (!isDev) {
