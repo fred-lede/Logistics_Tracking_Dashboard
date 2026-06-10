@@ -1,6 +1,6 @@
 {
   "name": "logistics-tracking-dashboard",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Multi-carrier package tracking dashboard with multi-channel notifications",
   "main": "electron/main.js",
   "private": true,
