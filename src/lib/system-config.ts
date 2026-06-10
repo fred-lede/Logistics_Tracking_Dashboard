@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 
 export type AccessMode = 'standalone' | 'server'
 export type DatabaseMode = 'sqlite' | 'postgresql'
@@ -166,7 +166,6 @@ export function updateSystemSettings(
 export function getPublicSystemSettings(
   settings: SystemSettings = loadSystemSettings(),
 ): PublicSystemSettings {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { postgresPassword, ...rest } = normalizeSystemSettings(settings)
 
   return {
