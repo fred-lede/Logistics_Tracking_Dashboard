@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { ChannelCard } from './channel-card'
@@ -8,8 +8,9 @@ import { ChannelDialog } from './channel-dialog'
 import { AddChannelForm } from './add-channel-form'
 import { LLMSettings } from './llm-settings'
 import { CarrierSettings } from './carrier-settings'
+import { SystemSettings } from './system-settings'
 import { LocaleSwitcher } from '@/components/locale-switcher'
-import { playAlertSound } from '@/components/tv/tv-sound'
+import { playAlertSound, type SoundId } from '@/components/tv/tv-sound'
 
 interface NotificationSetting {
   enabled: boolean
@@ -165,6 +166,8 @@ export function SettingsPage() {
         </div>
         <LocaleSwitcher />
       </div>
+
+      <SystemSettings />
 
       {/* LLM Enhancement */}
       <LLMSettings />
@@ -338,7 +341,7 @@ export function SettingsPage() {
             type="button"
             onClick={() => {
               const sel = document.querySelector<HTMLSelectElement>('#tv-sound-select')
-              playAlertSound(sel?.value as any || undefined)
+              playAlertSound((sel?.value || undefined) as SoundId | undefined)
             }}
             className="rounded-lg border border-fedex-purple px-3 py-1.5 text-sm font-medium text-fedex-purple hover:bg-fedex-purple/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fedex-purple focus-visible:ring-offset-1"
           >
