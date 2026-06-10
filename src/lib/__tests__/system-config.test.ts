@@ -1,13 +1,33 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import {
   DEFAULT_SYSTEM_SETTINGS,
   getPublicSystemSettings,
+  loadSystemSettings,
   normalizeSystemSettings,
   updateSystemSettings,
   type SystemSettings,
 } from '@/lib/system-config'
 
 describe('system config', () => {
+  let systemConfigDir: string | undefined
+  let originalSystemConfigDir: string | undefined
+
+  beforeEach(() => {
+    originalSystemConfigDir = process.env.SYSTEM_CONFIG_DIR
+  })
+
+  afterEach(() => {
+    if (originalSystemConfigDir === undefined) {
+      delete process.env.SYSTEM_CONFIG_DIR
+    } else {
+      process.env.SYSTEM_CONFIG_DIR = originalSystemConfigDir
+    }
+    vi.restoreAllMocks()
+  })
+
   it('normalizes missing values to safe defaults', () => {
     const settings = normalizeSystemSettings({})
 
@@ -46,5 +66,46 @@ describe('system config', () => {
     const updated = updateSystemSettings(existing, { postgresPassword: '••••••••' })
 
     expect(updated.postgresPassword).toBe('secret')
+  })
+
+  it('preserves a custom server host when access mode changes and no host is submitted', () => {
+    const existing: SystemSettings = {
+      ...DEFAULT_SYSTEM_SETTINGS,
+      accessMode: 'standalone',
+      serverHost: '192.168.1.25',
+    }
+
+    const updated = updateSystemSettings(existing, { accessMode: 'server' })
+
+    expect(updated.serverHost).toBe('192.168.1.25')
+  })
+
+  it('derives the new host when the existing host was the default for the previous mode', () => {
+    const existing: SystemSettings = {
+      ...DEFAULT_SYSTEM_SETTINGS,
+      accessMode: 'standalone',
+      serverHost: '127.0.0.1',
+    }
+
+    const updated = updateSystemSettings(existing, { accessMode: 'server' })
+
+    expect(updated.serverHost).toBe('0.0.0.0')
+  })
+
+  it('returns defaults when the system settings file is missing', () => {
+    systemConfigDir = mkdtempSync(join(tmpdir(), 'system-config-'))
+    process.env.SYSTEM_CONFIG_DIR = systemConfigDir
+
+    const settings = loadSystemSettings()
+
+    expect(settings).toEqual(DEFAULT_SYSTEM_SETTINGS)
+  })
+
+  it('throws on malformed system settings JSON', () => {
+    systemConfigDir = mkdtempSync(join(tmpdir(), 'system-config-'))
+    process.env.SYSTEM_CONFIG_DIR = systemConfigDir
+    writeFileSync(join(systemConfigDir, '.system-settings.json'), '{not json')
+
+    expect(() => loadSystemSettings()).toThrow(`Invalid system settings file: ${join(systemConfigDir, '.system-settings.json')}`)
   })
 })

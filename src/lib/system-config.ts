@@ -39,6 +39,10 @@ const isDatabaseMode = (value: unknown): value is DatabaseMode =>
 const isPostgresSslMode = (value: unknown): value is PostgresSslMode =>
   value === 'disable' || value === 'prefer' || value === 'require'
 
+function getDefaultServerHost(accessMode: AccessMode): string {
+  return accessMode === 'server' ? '0.0.0.0' : '127.0.0.1'
+}
+
 function getConfigDir(): string {
   return process.env.SYSTEM_CONFIG_DIR || process.env.CARRIER_CONFIG_DIR || process.cwd()
 }
@@ -73,9 +77,7 @@ export function normalizeSystemSettings(input: Partial<SystemSettings>): SystemS
   const serverHost =
     typeof input.serverHost === 'string' && input.serverHost
       ? input.serverHost
-      : accessMode === 'server'
-        ? '0.0.0.0'
-        : '127.0.0.1'
+      : getDefaultServerHost(accessMode)
 
   return {
     accessMode,
@@ -106,11 +108,22 @@ export function normalizeSystemSettings(input: Partial<SystemSettings>): SystemS
 }
 
 export function loadSystemSettings(): SystemSettings {
+  const path = getSystemConfigPath()
+  let raw: string
+
   try {
-    const raw = readFileSync(getSystemConfigPath(), 'utf-8')
+    raw = readFileSync(path, 'utf-8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return normalizeSystemSettings(DEFAULT_SYSTEM_SETTINGS)
+    }
+    throw error
+  }
+
+  try {
     return normalizeSystemSettings(JSON.parse(raw) as Partial<SystemSettings>)
-  } catch {
-    return normalizeSystemSettings(DEFAULT_SYSTEM_SETTINGS)
+  } catch (cause) {
+    throw new Error(`Invalid system settings file: ${path}`, { cause })
   }
 }
 
@@ -135,8 +148,16 @@ export function updateSystemSettings(
     next.postgresPassword = existing.postgresPassword
   }
 
-  if (update.accessMode && !update.serverHost) {
-    next.serverHost = update.accessMode === 'server' ? '0.0.0.0' : '127.0.0.1'
+  const nextAccessMode = isAccessMode(update.accessMode) ? update.accessMode : existing.accessMode
+  const accessModeChanged =
+    isAccessMode(update.accessMode) && update.accessMode !== existing.accessMode
+  const serverHostSubmitted = Object.prototype.hasOwnProperty.call(update, 'serverHost')
+  if (accessModeChanged && !serverHostSubmitted) {
+    const existingHostWasDefault =
+      !existing.serverHost || existing.serverHost === getDefaultServerHost(existing.accessMode)
+    if (existingHostWasDefault) {
+      next.serverHost = getDefaultServerHost(nextAccessMode)
+    }
   }
 
   return normalizeSystemSettings(next)
