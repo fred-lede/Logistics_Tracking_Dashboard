@@ -89,5 +89,5 @@ CREATE TABLE IF NOT EXISTS "LLMSetting" (
 );
 
 INSERT OR IGNORE INTO "NotificationSetting" ("id") VALUES ('global');
-INSERT OR IGNORE INTO "LLMSetting" ("id", "enabled") VALUES ('global', 1);
+INSERT OR IGNORE INTO "LLMSetting" ("id") VALUES ('global');
 `

@@ -7,7 +7,7 @@ import { schemaSql } from './schema'
 type SqlValue = string | number | Uint8Array | null
 
 let sqlPromise: Promise<SqlJsStatic> | null = null
-let singletonPromise: Promise<SqlJsStore> | null = null
+const storePromises = new Map<string, Promise<SqlJsStore>>()
 
 function locateSqlJsFile(file: string): string {
   const require = createRequire(import.meta.url)
@@ -46,8 +46,25 @@ export class SqlJsStore {
   }
 
   async persist(): Promise<void> {
-    fs.mkdirSync(path.dirname(this.dbPath), { recursive: true })
-    fs.writeFileSync(this.dbPath, Buffer.from(this.db.export()))
+    const dbDir = path.dirname(this.dbPath)
+    const dbBaseName = path.basename(this.dbPath)
+    const tempPath = path.join(
+      dbDir,
+      `.${dbBaseName}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`,
+    )
+
+    fs.mkdirSync(dbDir, { recursive: true })
+    try {
+      fs.writeFileSync(tempPath, Buffer.from(this.db.export()))
+      fs.renameSync(tempPath, this.dbPath)
+    } catch (error) {
+      try {
+        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath)
+      } catch {
+        // Best-effort cleanup only; preserve the original persistence error.
+      }
+      throw error
+    }
   }
 }
 
@@ -62,10 +79,15 @@ export async function createSqlJsStore(dbPath: string): Promise<SqlJsStore> {
 }
 
 export function getSqlJsStore(dbPath: string): Promise<SqlJsStore> {
-  singletonPromise ??= createSqlJsStore(dbPath)
-  return singletonPromise
+  const resolvedDbPath = path.resolve(dbPath)
+  let storePromise = storePromises.get(resolvedDbPath)
+  if (!storePromise) {
+    storePromise = createSqlJsStore(resolvedDbPath)
+    storePromises.set(resolvedDbPath, storePromise)
+  }
+  return storePromise
 }
 
 export function resetSqlJsStoreForTests(): void {
-  singletonPromise = null
+  storePromises.clear()
 }
