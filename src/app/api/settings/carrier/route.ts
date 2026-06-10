@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server'
 import { loadCarrierConfig, saveCarrierConfig } from '@/lib/carrier-config'
+import { requireLocalRequest } from '@/lib/request-access'
 
 const MASKED = '••••••••'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const config = loadCarrierConfig()
   return NextResponse.json({
     fedexApiKey: config?.fedexApiKey ? MASKED : '',
@@ -13,6 +17,9 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const body = await request.json()
   const existing = loadCarrierConfig() || { fedexApiKey: '', fedexApiSecret: '' }
 

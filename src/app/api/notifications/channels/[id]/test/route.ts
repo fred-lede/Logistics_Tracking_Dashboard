@@ -2,11 +2,15 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { notificationRegistry } from '@/lib/notification/registry'
 import type { NotificationMessage } from '@/lib/notification/types'
+import { requireLocalRequest } from '@/lib/request-access'
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const { id } = await params
 
   const channel = await db.notificationChannel.findUnique({

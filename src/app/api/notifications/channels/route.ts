@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireLocalRequest } from '@/lib/request-access'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const channels = await db.notificationChannel.findMany({
     include: { contacts: { where: { enabled: true } } },
     orderBy: { createdAt: 'asc' },
@@ -10,6 +14,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const body = await request.json()
   const channel = await db.notificationChannel.create({
     data: {

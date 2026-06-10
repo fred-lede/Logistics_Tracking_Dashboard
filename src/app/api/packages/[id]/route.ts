@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireLocalRequest } from '@/lib/request-access'
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const { id } = await params
 
   try {

@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { translateSummary } from '@/lib/llm/service'
+import { requireLocalRequest } from '@/lib/request-access'
 
 export async function POST(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const body = await request.json()
   const { items, locale } = body as { items: { id: string; summary: string | null; rootCause: string | null }[]; locale: string }
 

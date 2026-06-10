@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireLocalRequest } from '@/lib/request-access'
 import { getProvider } from '@/lib/tracking/registry'
 
 function safeParseJSON(value: string): unknown[] {
@@ -34,6 +35,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const body = await request.json()
   const { trackingNumber, nickname, partNumbers } = body as Record<string, unknown>
 

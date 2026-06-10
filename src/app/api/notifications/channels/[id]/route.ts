@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireLocalRequest } from '@/lib/request-access'
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const { id } = await params
   const channel = await db.notificationChannel.findUnique({
     where: { id },
@@ -24,6 +28,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const { id } = await params
   const body = await request.json()
   const channel = await db.notificationChannel.update({
@@ -47,9 +54,12 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const { id } = await params
   await db.notificationChannel.delete({ where: { id } })
   return NextResponse.json({ success: true })

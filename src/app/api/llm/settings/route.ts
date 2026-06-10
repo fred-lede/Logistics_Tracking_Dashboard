@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireLocalRequest } from '@/lib/request-access'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   let settings = await db.lLMSetting.findUnique({ where: { id: 'global' } })
   if (!settings) {
     settings = await db.lLMSetting.create({ data: { id: 'global' } })
@@ -13,6 +17,9 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const body = (await request.json()) as Record<string, unknown>
 
   const data: {

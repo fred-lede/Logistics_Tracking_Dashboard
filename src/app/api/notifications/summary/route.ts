@@ -2,8 +2,12 @@ import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { translateSummary } from '@/lib/llm/service'
 import { safeParseEvents } from '@/lib/tracking/providers/fedex'
+import { requireLocalRequest } from '@/lib/request-access'
 
 export async function GET(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const setting = await db.notificationSetting.findUnique({ where: { id: 'global' } })
   if (!setting) {
     return NextResponse.json({ daily: null, periodic: null })

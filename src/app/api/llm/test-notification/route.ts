@@ -3,6 +3,7 @@ import { db } from '@/lib/db'
 import { testConnection, resolveProvider } from '@/lib/llm/service'
 import { sendNotifications } from '@/lib/notification/service'
 import type { StatusChangeMessage } from '@/lib/notification/types'
+import { requireLocalRequest } from '@/lib/request-access'
 
 const LLM_TIMEOUT_MS = 60_000
 
@@ -14,6 +15,9 @@ const LOCALE_MAP: Record<string, string> = {
 }
 
 export async function POST(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   try {
     const body = await request.json()
     const saved = await db.lLMSetting.findUnique({ where: { id: 'global' } })

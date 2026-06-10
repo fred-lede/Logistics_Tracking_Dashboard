@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { testConnection } from '@/lib/llm/service'
+import { requireLocalRequest } from '@/lib/request-access'
 
 export async function POST(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   try {
     const body = await request.json()
     const saved = await db.lLMSetting.findUnique({ where: { id: 'global' } })

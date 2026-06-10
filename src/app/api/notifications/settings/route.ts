@@ -1,8 +1,12 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { restartScheduler } from '@/lib/notification/scheduler'
+import { requireLocalRequest } from '@/lib/request-access'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const settings = await db.notificationSetting.findUnique({
     where: { id: 'global' },
   })
@@ -14,6 +18,9 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const body = await request.json()
   const prev = await db.notificationSetting.findUnique({ where: { id: 'global' } })
 

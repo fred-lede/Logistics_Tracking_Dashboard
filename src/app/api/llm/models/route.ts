@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { requireLocalRequest } from '@/lib/request-access'
 
 interface ModelInfo {
   id: string
@@ -148,6 +149,9 @@ async function fetchCustomModels(baseUrl: string, apiKey?: string | null): Promi
 }
 
 export async function GET(request: Request) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const { searchParams } = new URL(request.url)
   const provider = searchParams.get('provider') || 'openai'
   const queryApiKey = searchParams.get('apiKey')

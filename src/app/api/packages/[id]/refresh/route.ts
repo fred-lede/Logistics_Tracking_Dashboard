@@ -4,11 +4,15 @@ import { getProvider } from '@/lib/tracking/registry'
 import { sendNotifications } from '@/lib/notification/service'
 import type { StatusChangeMessage, OverdueMessage } from '@/lib/notification/types'
 import { analyzePackage, translateSummary } from '@/lib/llm/service'
+import { requireLocalRequest } from '@/lib/request-access'
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const forbidden = requireLocalRequest(request.headers)
+  if (forbidden) return forbidden
+
   const { id } = await params
 
   const pkg = await db.package.findUnique({ where: { id } })
