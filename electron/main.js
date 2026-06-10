@@ -12,6 +12,7 @@ const isDev = !app.isPackaged;
 let mainWindow = null;
 let nextServer = null;
 let isQuitting = false;
+let serverSettings = null;
 
 function logPath() {
   if (isDev) return path.resolve('./electron.log');
@@ -36,6 +37,37 @@ function getDbPath() {
   return path.join(app.getPath('userData'), 'dev.db');
 }
 
+function getSystemConfigPath() {
+  if (isDev) return path.resolve('./.system-settings.json');
+  return path.join(app.getPath('userData'), '.system-settings.json');
+}
+
+function normalizeSystemSettings(raw = {}) {
+  const accessMode = raw.accessMode === 'server' ? 'server' : 'standalone';
+  const configuredPort = Number(raw.serverPort);
+  const serverPort = Number.isInteger(configuredPort) && configuredPort > 0 && configuredPort <= 65535
+    ? configuredPort
+    : DEV_PORT;
+  return {
+    accessMode,
+    serverPort,
+    serverHost: raw.serverHost || (accessMode === 'server' ? '0.0.0.0' : '127.0.0.1'),
+    sqlitePath: raw.sqlitePath || ('file:' + getDbPath()),
+  };
+}
+
+function loadSystemSettings() {
+  try {
+    return normalizeSystemSettings(JSON.parse(fs.readFileSync(getSystemConfigPath(), 'utf-8')));
+  } catch (err) {
+    if (!err || err.code !== 'ENOENT') {
+      const message = err && err.message ? err.message : String(err);
+      log('Failed to read system settings, using defaults:', message);
+    }
+    return normalizeSystemSettings();
+  }
+}
+
 function getNextBin() {
   return path.join(process.cwd(), 'node_modules', 'next', 'dist', 'bin', 'next');
 }
@@ -45,7 +77,7 @@ function getServerEntry() {
   return path.join(process.resourcesPath, 'app', '.next', 'standalone', 'server.js');
 }
 
-function getNextServerEnv(dbPath, port) {
+function getNextServerEnv(settings) {
   const env = { ...process.env };
   const strip = [
     'ELECTRON_RUN_AS_NODE',
@@ -54,10 +86,12 @@ function getNextServerEnv(dbPath, port) {
     'NODE_OPTIONS',
   ];
   for (const key of strip) delete env[key];
-  env.DATABASE_URL = 'file:' + dbPath;
+  env.DATABASE_URL = settings.sqlitePath;
   env.ELECTRON_RUN_AS_NODE = '1';
   env.CARRIER_CONFIG_DIR = isDev ? process.cwd() : app.getPath('userData');
-  if (port) env.PORT = String(port);
+  env.SYSTEM_CONFIG_DIR = isDev ? process.cwd() : app.getPath('userData');
+  env.HOSTNAME = settings.serverHost;
+  env.PORT = String(settings.serverPort);
   return env;
 }
 
@@ -67,20 +101,28 @@ function getCwd() {
 }
 
 function startNextServer() {
-  const dbPath = getDbPath();
+  serverSettings = loadSystemSettings();
   const cwd = getCwd();
 
   if (isDev) {
     const nextBin = getNextBin();
-    log('starting Next.js dev server from', cwd);
-    nextServer = spawn(process.execPath, [nextBin, 'dev', '--webpack', '-p', String(DEV_PORT)], {
-      cwd, env: getNextServerEnv(dbPath), stdio: 'pipe',
+    log('starting Next.js dev server from', cwd, 'host:', serverSettings.serverHost, 'port:', serverSettings.serverPort);
+    nextServer = spawn(process.execPath, [
+      nextBin,
+      'dev',
+      '--webpack',
+      '-p',
+      String(serverSettings.serverPort),
+      '-H',
+      serverSettings.serverHost,
+    ], {
+      cwd, env: getNextServerEnv(serverSettings), stdio: 'pipe',
     });
   } else {
     const entry = getServerEntry();
-    log('starting Next.js production server, entry:', entry);
+    log('starting Next.js production server, entry:', entry, 'host:', serverSettings.serverHost, 'port:', serverSettings.serverPort);
     nextServer = spawn(process.execPath, [entry], {
-      cwd: path.dirname(entry), env: getNextServerEnv(dbPath, DEV_PORT), stdio: 'pipe',
+      cwd: path.dirname(entry), env: getNextServerEnv(serverSettings), stdio: 'pipe',
     });
   }
 
@@ -112,6 +154,7 @@ function waitForServer(url, maxRetries = 60) {
 }
 
 function createWindow() {
+  const settings = serverSettings || loadSystemSettings();
   mainWindow = new BrowserWindow({
     width: 1280, height: 800, minWidth: 900, minHeight: 600,
     webPreferences: {
@@ -127,7 +170,7 @@ function createWindow() {
   });
 
   mainWindow.on('ready-to-show', () => mainWindow.show());
-  mainWindow.loadURL('http://localhost:' + DEV_PORT);
+  mainWindow.loadURL('http://localhost:' + settings.serverPort);
 }
 
 function createAppMenu() {
@@ -161,6 +204,7 @@ app.whenReady().then(async () => {
 
   const dbPath = getDbPath();
   log('dbPath:', dbPath);
+  log('systemConfigPath:', getSystemConfigPath());
 
   // Copy .carrier-creds.json to userData if not present
   if (!isDev) {
@@ -182,10 +226,11 @@ app.whenReady().then(async () => {
   }
 
   startNextServer();
-  log('Waiting for server on port', DEV_PORT);
+  const settings = serverSettings || loadSystemSettings();
+  log('Waiting for server on port', settings.serverPort);
 
   try {
-    await waitForServer('http://localhost:' + DEV_PORT);
+    await waitForServer('http://localhost:' + settings.serverPort);
     log('Server is ready');
   } catch (err) {
     log('Server startup failed:', err.message);
