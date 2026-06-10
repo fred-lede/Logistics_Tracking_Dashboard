@@ -45,7 +45,7 @@ async function exportLlmSettings() {
     const initSqlJs = require('sql.js/dist/sql-asm.js');
     const SQL = await initSqlJs();
     const db = new SQL.Database(fs.readFileSync(dbPath));
-    const result = db.exec('SELECT provider, "providerLabel", apiKey, baseUrl, model, "compatMode", locale FROM LLMSetting WHERE id = $id', {
+    const result = db.exec('SELECT provider, "providerLabel", apiKey, baseUrl, model, "compatMode", locale, enabled FROM LLMSetting WHERE id = $id', {
       $id: 'global',
     });
     db.close();
@@ -54,6 +54,7 @@ async function exportLlmSettings() {
     const values = result[0]?.values[0];
     if (columns && values) {
       const row = Object.fromEntries(columns.map((column, index) => [column, values[index]]));
+      row.enabled = row.enabled === 1 || row.enabled === true;
       const outPath = path.join(standaloneDir, '.llm-settings.json');
       fs.writeFileSync(outPath, JSON.stringify(row, null, 2));
       console.log('[post-build] Exported LLM settings →', outPath);

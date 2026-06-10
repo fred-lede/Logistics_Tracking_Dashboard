@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -6,6 +6,7 @@ import { databaseUrlToPath } from '../path'
 import { createSqlJsStore, getSqlJsStore, resetSqlJsStoreForTests } from '../sqljs'
 
 const tempDirs: string[] = []
+const originalCwd = process.cwd()
 
 function tempDbPath() {
   const tempDir = mkdtempSync(path.join(tmpdir(), 'logistics-sqljs-'))
@@ -14,6 +15,7 @@ function tempDbPath() {
 }
 
 afterEach(() => {
+  process.chdir(originalCwd)
   resetSqlJsStoreForTests()
   while (tempDirs.length > 0) {
     const tempDir = tempDirs.pop()
@@ -50,6 +52,92 @@ describe('sql.js store', () => {
     const rows = reopened.all<{ trackingNumber: string }>('SELECT "trackingNumber" FROM "Package"')
 
     expect(rows).toEqual([{ trackingNumber: 'TRACK-1' }])
+  })
+
+  it('imports bundled LLM settings into a new packaged database', async () => {
+    const dbPath = tempDbPath()
+    const standaloneDir = path.dirname(dbPath)
+    process.chdir(standaloneDir)
+    writeFileSync(
+      path.join(standaloneDir, '.llm-settings.json'),
+      JSON.stringify({
+        provider: 'custom',
+        providerLabel: 'AIIH',
+        apiKey: 'test-key',
+        baseUrl: 'https://example.test/v1',
+        model: 'gemma4:e4b',
+        compatMode: 'responses',
+        locale: 'en',
+        enabled: true,
+      }),
+    )
+
+    const store = await createSqlJsStore(dbPath)
+
+    expect(
+      store.get<{
+        provider: string
+        providerLabel: string
+        apiKey: string
+        baseUrl: string
+        model: string
+        compatMode: string
+        enabled: number
+      }>(
+        'SELECT provider, "providerLabel", apiKey, baseUrl, model, "compatMode", enabled FROM "LLMSetting" WHERE "id" = ?',
+        ['global'],
+      ),
+    ).toEqual({
+      provider: 'custom',
+      providerLabel: 'AIIH',
+      apiKey: 'test-key',
+      baseUrl: 'https://example.test/v1',
+      model: 'gemma4:e4b',
+      compatMode: 'responses',
+      enabled: 1,
+    })
+  })
+
+  it('does not overwrite existing user LLM settings with bundled settings', async () => {
+    const dbPath = tempDbPath()
+    const standaloneDir = path.dirname(dbPath)
+    process.chdir(standaloneDir)
+    writeFileSync(
+      path.join(standaloneDir, '.llm-settings.json'),
+      JSON.stringify({
+        provider: 'custom',
+        apiKey: 'bundled-key',
+        baseUrl: 'https://bundled.example.test/v1',
+        model: 'bundled-model',
+        compatMode: 'responses',
+        locale: 'en',
+        enabled: true,
+      }),
+    )
+
+    const store = await createSqlJsStore(dbPath)
+    store.run(
+      `UPDATE "LLMSetting"
+       SET provider = ?, apiKey = ?, baseUrl = ?, model = ?, enabled = ?
+       WHERE "id" = ?`,
+      ['ollama', 'user-key', 'http://localhost:11434', 'llama3.2', 0, 'global'],
+    )
+    await store.persist()
+
+    const reopened = await createSqlJsStore(dbPath)
+
+    expect(
+      reopened.get<{ provider: string; apiKey: string; baseUrl: string; model: string; enabled: number }>(
+        'SELECT provider, apiKey, baseUrl, model, enabled FROM "LLMSetting" WHERE "id" = ?',
+        ['global'],
+      ),
+    ).toEqual({
+      provider: 'ollama',
+      apiKey: 'user-key',
+      baseUrl: 'http://localhost:11434',
+      model: 'llama3.2',
+      enabled: 0,
+    })
   })
 
   it('keeps singleton stores isolated by database path', async () => {
