@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 
 export async function POST(request: Request) {
   const body = await request.json()
-  const contact = await prisma.notificationContact.create({
+  const contact = await db.notificationContact.create({
     data: {
       channelId: body.channelId,
       name: body.name,

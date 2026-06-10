@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  const channel = await prisma.notificationChannel.findUnique({
+  const channel = await db.notificationChannel.findUnique({
     where: { id },
     include: { contacts: { where: { enabled: true } } },
   })
@@ -26,7 +26,7 @@ export async function PUT(
 ) {
   const { id } = await params
   const body = await request.json()
-  const channel = await prisma.notificationChannel.update({
+  const channel = await db.notificationChannel.update({
     where: { id },
       data: {
         label: body.label,
@@ -51,7 +51,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  await prisma.notificationChannel.delete({ where: { id } })
+  await db.notificationChannel.delete({ where: { id } })
   return NextResponse.json({ success: true })
 }
 

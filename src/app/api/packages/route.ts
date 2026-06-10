@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 import { getProvider } from '@/lib/tracking/registry'
 
 function safeParseJSON(value: string): unknown[] {
@@ -20,7 +20,7 @@ function normalizePartNumbers(input: unknown): string[] {
   return []
 }
 export async function GET() {
-  const packages = await prisma.package.findMany({
+  const packages = await db.package.findMany({
     orderBy: { updatedAt: 'desc' },
   })
   return NextResponse.json(
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const existing = await prisma.package.findUnique({
+  const existing = await db.package.findUnique({
     where: { trackingNumber },
   })
   if (existing) {
@@ -84,7 +84,7 @@ export async function POST(request: Request) {
     )
   }
 
-  const pkg = await prisma.package.create({
+  const pkg = await db.package.create({
     data: {
       trackingNumber,
       nickname: safeNickname,

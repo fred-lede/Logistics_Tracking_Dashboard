@@ -289,9 +289,11 @@ function withContacts(
   sqlStore: SqlJsStore,
   channel: NotificationChannelRow,
   include?: IncludeOption,
-): NotificationChannelRow | NotificationChannelWithContacts {
-  if (!include?.contacts) return channel
-  return { ...channel, contacts: findContactsForChannel(sqlStore, channel.id, include.contacts) }
+): NotificationChannelWithContacts {
+  return {
+    ...channel,
+    contacts: include?.contacts ? findContactsForChannel(sqlStore, channel.id, include.contacts) : [],
+  }
 }
 
 async function findPackageUnique(args: { where: { id?: string; trackingNumber?: string } }) {

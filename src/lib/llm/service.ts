@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 import { getLLMProvider } from './registry'
 import type { AnalysisResult, DelayRisk } from './types'
 
@@ -133,10 +133,10 @@ const LOCALE_MAP: Record<string, string> = {
 export async function analyzePackage(
   pkgId: string,
 ): Promise<AnalysisResult | null> {
-  const settings = await prisma.lLMSetting.findUnique({ where: { id: 'global' } })
+  const settings = await db.lLMSetting.findUnique({ where: { id: 'global' } })
   if (!settings?.enabled) return null
 
-  const pkg = await prisma.package.findUnique({ where: { id: pkgId } })
+  const pkg = await db.package.findUnique({ where: { id: pkgId } })
   if (!pkg) return null
 
   if (pkg.aiAnalyzedAt && Date.now() - pkg.aiAnalyzedAt.getTime() < ANALYSIS_COOLDOWN_MS) {
@@ -203,7 +203,7 @@ export async function analyzePackage(
       // Risk analysis is optional — silently skip on failure
     }
 
-    await prisma.package.update({
+    await db.package.update({
       where: { id: pkgId },
       data: {
         aiSummary: summary,
@@ -228,7 +228,7 @@ export async function translateSummary(
   const langLabel = LOCALE_MAP[locale]
   if (!langLabel) return text
 
-  const settings = await prisma.lLMSetting.findUnique({ where: { id: 'global' } })
+  const settings = await db.lLMSetting.findUnique({ where: { id: 'global' } })
   if (!settings?.enabled) return text
 
   const provider = await resolveProvider(settings.provider, settings.apiKey, settings.baseUrl, settings.model, settings.providerLabel, { compatMode: settings.compatMode ?? 'chat' })

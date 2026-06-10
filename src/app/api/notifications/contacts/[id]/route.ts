@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 
 export async function PUT(
   request: Request,
@@ -7,7 +7,7 @@ export async function PUT(
 ) {
   const { id } = await params
   const body = await request.json()
-  const contact = await prisma.notificationContact.update({
+  const contact = await db.notificationContact.update({
     where: { id },
       data: {
         name: body.name,
@@ -24,6 +24,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
-  await prisma.notificationContact.delete({ where: { id } })
+  await db.notificationContact.delete({ where: { id } })
   return NextResponse.json({ success: true })
 }

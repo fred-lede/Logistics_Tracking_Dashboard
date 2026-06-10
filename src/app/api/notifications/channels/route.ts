@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 
 export async function GET() {
-  const channels = await prisma.notificationChannel.findMany({
+  const channels = await db.notificationChannel.findMany({
     include: { contacts: { where: { enabled: true } } },
     orderBy: { createdAt: 'asc' },
   })
@@ -11,7 +11,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const body = await request.json()
-  const channel = await prisma.notificationChannel.create({
+  const channel = await db.notificationChannel.create({
     data: {
       type: body.type,
       label: body.label || '',

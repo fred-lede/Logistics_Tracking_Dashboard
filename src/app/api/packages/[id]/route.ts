@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 
 export async function DELETE(
   _request: Request,
@@ -8,7 +8,7 @@ export async function DELETE(
   const { id } = await params
 
   try {
-    await prisma.package.delete({ where: { id } })
+    await db.package.delete({ where: { id } })
     return NextResponse.json({ deleted: true })
   } catch {
     return NextResponse.json({ error: 'Package not found' }, { status: 404 })

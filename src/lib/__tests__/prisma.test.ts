@@ -1,13 +1,14 @@
 import { afterAll, describe, expect, it } from 'vitest'
+import { db } from '../db'
 import { prisma } from '../prisma'
 
-describe('Prisma client', () => {
+describe('Legacy prisma compatibility export', () => {
   afterAll(async () => {
     await prisma.$disconnect()
   })
 
-  it('can execute a raw SQLite query', async () => {
-    await expect(prisma.$queryRaw`SELECT 1`).resolves.toBeDefined()
+  it('points legacy prisma imports at the native-free db facade', () => {
+    expect(prisma).toBe(db)
   })
 
   it('can create and delete a package row', async () => {

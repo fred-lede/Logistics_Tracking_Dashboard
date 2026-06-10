@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 import { getProvider } from '@/lib/tracking/registry'
 import { sendNotifications } from '@/lib/notification/service'
 import type { StatusChangeMessage, OverdueMessage } from '@/lib/notification/types'
@@ -11,7 +11,7 @@ export async function POST(
 ) {
   const { id } = await params
 
-  const pkg = await prisma.package.findUnique({ where: { id } })
+  const pkg = await db.package.findUnique({ where: { id } })
   if (!pkg) {
     return NextResponse.json({ error: 'Package not found' }, { status: 404 })
   }
@@ -33,7 +33,7 @@ export async function POST(
 
     const oldStatus = pkg.status
 
-    const updated = await prisma.package.update({
+    const updated = await db.package.update({
       where: { id },
       data: {
         status: result.status,

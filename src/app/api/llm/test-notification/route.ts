@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 import { testConnection, resolveProvider } from '@/lib/llm/service'
 import { sendNotifications } from '@/lib/notification/service'
 import type { StatusChangeMessage } from '@/lib/notification/types'
@@ -16,7 +16,7 @@ const LOCALE_MAP: Record<string, string> = {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const saved = await prisma.lLMSetting.findUnique({ where: { id: 'global' } })
+    const saved = await db.lLMSetting.findUnique({ where: { id: 'global' } })
 
     if (!saved?.enabled) {
       return NextResponse.json({ success: false, error: 'LLM is not enabled' }, { status: 400 })

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 
 interface ModelInfo {
   id: string
@@ -153,7 +153,7 @@ export async function GET(request: Request) {
   const queryApiKey = searchParams.get('apiKey')
   const queryBaseUrl = searchParams.get('baseUrl')
 
-  const saved = await prisma.lLMSetting.findUnique({ where: { id: 'global' } })
+  const saved = await db.lLMSetting.findUnique({ where: { id: 'global' } })
   const apiKey = await resolveApiKey(queryApiKey, saved?.apiKey ?? null)
   const baseUrl = queryBaseUrl || saved?.baseUrl || null
 

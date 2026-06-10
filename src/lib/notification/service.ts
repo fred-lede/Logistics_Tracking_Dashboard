@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 import { notificationRegistry } from './registry'
 import { parseJsonArray } from '@/lib/utils'
 import { translateSummary } from '@/lib/llm/service'
@@ -49,18 +49,18 @@ async function translateSummaryPackages(
 export async function sendNotifications(
   message: NotificationMessage
 ): Promise<{ channelId: string; result: NotificationResult }[]> {
-  const settings = await prisma.notificationSetting.findUnique({
+  const settings = await db.notificationSetting.findUnique({
     where: { id: 'global' },
   })
 
   if (!settings?.enabled) return []
 
-  const channels = await prisma.notificationChannel.findMany({
+  const channels = await db.notificationChannel.findMany({
     where: { enabled: true },
     include: { contacts: { where: { enabled: true } } },
   })
 
-  const llmSetting = await prisma.lLMSetting.findUnique({ where: { id: 'global' } })
+  const llmSetting = await db.lLMSetting.findUnique({ where: { id: 'global' } })
   const defaultLocale = llmSetting?.locale || 'en'
 
   const results: { channelId: string; result: NotificationResult }[] = []
@@ -113,7 +113,7 @@ export async function sendNotifications(
       const result = await provider.send(config, contactInfos, localizedMessage)
 
       if (contacts === channel.contacts) {
-        await prisma.notificationLog.create({
+        await db.notificationLog.create({
           data: {
             packageId: message.type === 'status_change' ? message.packageId : message.type === 'overdue' ? message.packageId : '',
             channelId: channel.id,

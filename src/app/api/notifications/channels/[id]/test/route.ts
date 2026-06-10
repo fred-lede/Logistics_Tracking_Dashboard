@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 import { notificationRegistry } from '@/lib/notification/registry'
 import type { NotificationMessage } from '@/lib/notification/types'
 
@@ -9,7 +9,7 @@ export async function POST(
 ) {
   const { id } = await params
 
-  const channel = await prisma.notificationChannel.findUnique({
+  const channel = await db.notificationChannel.findUnique({
     where: { id },
     include: { contacts: { where: { enabled: true } } },
   })

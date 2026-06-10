@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 import { safeParseEvents } from '@/lib/tracking/providers/fedex'
 import { sendNotifications } from './service'
 import { translateSummary } from '@/lib/llm/service'
@@ -18,14 +18,14 @@ function getMinutesSinceMidnight(): number {
 }
 
 async function sendDailySummary() {
-  const setting = await prisma.notificationSetting.findUnique({
+  const setting = await db.notificationSetting.findUnique({
     where: { id: 'global' },
   })
   if (!setting?.dailySummaryEnabled) return
   if (setting.lastDailySent === getTodayKey()) return
 
-  const allPackages = await prisma.package.findMany()
-  const llmSetting = await prisma.lLMSetting.findUnique({ where: { id: 'global' } })
+  const allPackages = await db.package.findMany()
+  const llmSetting = await db.lLMSetting.findUnique({ where: { id: 'global' } })
   const locale = llmSetting?.locale || 'en'
 
   const packages = await Promise.all(allPackages.map(async (p) => {
@@ -53,7 +53,7 @@ async function sendDailySummary() {
   const results = await sendNotifications(message)
 
   if (results.length > 0) {
-    await prisma.notificationSetting.update({
+    await db.notificationSetting.update({
       where: { id: 'global' },
       data: { lastDailySent: getTodayKey() },
     })
@@ -61,13 +61,13 @@ async function sendDailySummary() {
 }
 
 async function sendPeriodicSummary() {
-  const setting = await prisma.notificationSetting.findUnique({
+  const setting = await db.notificationSetting.findUnique({
     where: { id: 'global' },
   })
   if (!setting?.periodicInterval || setting.periodicInterval <= 0) return
 
-  const allPackages = await prisma.package.findMany()
-  const llmSetting = await prisma.lLMSetting.findUnique({ where: { id: 'global' } })
+  const allPackages = await db.package.findMany()
+  const llmSetting = await db.lLMSetting.findUnique({ where: { id: 'global' } })
   const locale = llmSetting?.locale || 'en'
 
   const packages = await Promise.all(allPackages.map(async (p) => {
@@ -95,14 +95,14 @@ async function sendPeriodicSummary() {
 
   await sendNotifications(message)
 
-  await prisma.notificationSetting.update({
+  await db.notificationSetting.update({
     where: { id: 'global' },
     data: { lastPeriodicSent: new Date() },
   })
 }
 
 async function checkForDailyAndSyncPeriodic() {
-  const setting = await prisma.notificationSetting.findUnique({
+  const setting = await db.notificationSetting.findUnique({
     where: { id: 'global' },
   })
   if (!setting) return

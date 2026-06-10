@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 import { translateSummary } from '@/lib/llm/service'
 import { safeParseEvents } from '@/lib/tracking/providers/fedex'
 
 export async function GET(request: Request) {
-  const setting = await prisma.notificationSetting.findUnique({ where: { id: 'global' } })
+  const setting = await db.notificationSetting.findUnique({ where: { id: 'global' } })
   if (!setting) {
     return NextResponse.json({ daily: null, periodic: null })
   }
@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   const localeMatch = cookieHeader.match(/(?:^|;\s*)locale=([^;]+)/)
   const locale = localeMatch?.[1] ?? 'en'
 
-  const allPackages = await prisma.package.findMany()
+  const allPackages = await db.package.findMany()
 
   const packageSummaries = await Promise.all(
     allPackages.map(async (p) => {

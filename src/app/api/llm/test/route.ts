@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 import { testConnection } from '@/lib/llm/service'
 
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const saved = await prisma.lLMSetting.findUnique({ where: { id: 'global' } })
+    const saved = await db.lLMSetting.findUnique({ where: { id: 'global' } })
     const apiKey = (body.apiKey && body.apiKey !== '••••••••') ? body.apiKey : (saved?.apiKey ?? null)
     const baseUrl = body.baseUrl ?? saved?.baseUrl ?? null
     const model = body.model ?? saved?.model ?? null

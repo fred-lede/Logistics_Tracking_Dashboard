@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
+import { db } from '@/lib/db'
 import { analyzePackage, translateSummary } from '@/lib/llm/service'
 
 export async function POST(
@@ -8,7 +8,7 @@ export async function POST(
 ) {
   const { id } = await params
 
-  const pkg = await prisma.package.findUnique({ where: { id } })
+  const pkg = await db.package.findUnique({ where: { id } })
   if (!pkg) {
     return NextResponse.json({ error: 'Package not found' }, { status: 404 })
   }
