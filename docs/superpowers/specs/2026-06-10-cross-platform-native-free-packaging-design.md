@@ -153,3 +153,27 @@ Changing the database runtime touches shared API behavior. Keep changes narrow a
 - Changing carriers or notification provider behavior.
 - Replacing Electron.
 - Signing, notarization, or release publishing automation.
+
+## Verified Packaging Notes
+
+Implementation replaced the Prisma native SQLite runtime with a small SQL.js-backed
+database facade. The app intentionally loads `sql.js/dist/sql-asm.js` instead of
+the WASM build because Next/Turbopack traces the sql.js WASM loader into the
+standalone server bundle and fails during packaging analysis. The asm.js build is
+slower than WASM, but keeps the database runtime pure JavaScript and avoids
+cross-platform native module or WASM asset handling in the Electron standalone
+package.
+
+On Mac mini M4, the following commands were verified after the migration:
+
+- `npm test`
+- `npx tsc --noEmit --pretty false`
+- `npm run build`
+- `npm run package:mac`
+- `npm run package:win`
+- `npm run package:linux`
+- `npm run package:all`
+
+`npm run lint` still reports the existing repository lint baseline, including
+CommonJS Electron files and generated/release output. That lint cleanup is
+separate from the native-free packaging migration.
