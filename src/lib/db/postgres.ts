@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
-import { databaseUrlToPath } from './path'
-import { getSqlJsStore, type SqlJsStore } from './sqljs'
+import { Pool, type PoolConfig } from 'pg'
+import { loadSystemSettings, type SystemSettings } from '@/lib/system-config'
+import { postgresSchemaSql } from './postgres-schema'
 import type {
   IncludeContactsOption,
   IncludeOption,
@@ -13,11 +14,11 @@ import type {
   OrderByOption,
   PackageRow,
 } from './types'
+import type { DbFacade } from './facade'
 
 type Primitive = string | number | boolean | Date | null
 type Data = Record<string, Primitive | undefined>
 type WhereUnique = { id?: string }
-type SqlParam = string | number | Uint8Array | null
 
 const tableColumns = {
   Package: new Set([
@@ -100,17 +101,12 @@ function cuid() {
   return `c${randomUUID().replaceAll('-', '')}`
 }
 
-function nowIso() {
-  return new Date().toISOString()
-}
-
-function toDbValue(value: Primitive | undefined): SqlParam | undefined {
-  if (value instanceof Date) return value.toISOString()
-  if (typeof value === 'boolean') return value ? 1 : 0
-  return value
+function now() {
+  return new Date()
 }
 
 function dateOrNull(value: unknown): Date | null {
+  if (value instanceof Date) return value
   return typeof value === 'string' && value ? new Date(value) : null
 }
 
@@ -146,26 +142,29 @@ function filteredEntries(table: keyof typeof tableColumns, data: Data): [string,
   })
 }
 
-function insertSql(table: keyof typeof tableColumns, data: Data) {
+function placeholders(count: number) {
+  return Array.from({ length: count }, (_, index) => `$${index + 1}`).join(', ')
+}
+
+function insertReturningSql(table: keyof typeof tableColumns, data: Data) {
   const entries = filteredEntries(table, data)
   if (entries.length === 0) throw new Error(`No data provided for ${table} insert`)
 
   const columns = entries.map(([key]) => `"${key}"`).join(', ')
-  const placeholders = entries.map(() => '?').join(', ')
   return {
-    sql: `INSERT INTO "${table}" (${columns}) VALUES (${placeholders})`,
-    params: entries.map(([, value]) => toDbValue(value)) as SqlParam[],
+    sql: `INSERT INTO "${table}" (${columns}) VALUES (${placeholders(entries.length)}) RETURNING *`,
+    params: entries.map(([, value]) => value),
   }
 }
 
-function updateSql(table: keyof typeof tableColumns, data: Data, whereField: string, whereValue: string) {
+function updateReturningSql(table: keyof typeof tableColumns, data: Data, whereField: string, whereValue: string) {
   const entries = filteredEntries(table, data)
   if (entries.length === 0) throw new Error(`No data provided for ${table} update`)
 
-  const sets = entries.map(([key]) => `"${key}" = ?`).join(', ')
+  const sets = entries.map(([key], index) => `"${key}" = $${index + 1}`).join(', ')
   return {
-    sql: `UPDATE "${table}" SET ${sets} WHERE "${whereField}" = ?`,
-    params: [...entries.map(([, value]) => toDbValue(value)), whereValue] as SqlParam[],
+    sql: `UPDATE "${table}" SET ${sets} WHERE "${whereField}" = $${entries.length + 1} RETURNING *`,
+    params: [...entries.map(([, value]) => value), whereValue],
   }
 }
 
@@ -264,110 +263,119 @@ function llmRow(row: Record<string, unknown>): LLMSettingRow {
   }
 }
 
-async function store() {
-  return getSqlJsStore(databaseUrlToPath())
-}
-
-async function persist(sqlStore: SqlJsStore) {
-  await sqlStore.persist()
-}
-
-function requireRow<T>(row: T | null, model: string): T {
+function requireRow<T>(row: T | null | undefined, model: string): T {
   if (!row) throw new Error(`${model} not found`)
   return row
 }
 
-function findContactsForChannel(sqlStore: SqlJsStore, channelId: string, include: IncludeContactsOption) {
-  const onlyEnabled = typeof include === 'object' && include.where?.enabled === true
-  const sql = onlyEnabled
-    ? 'SELECT * FROM "NotificationContact" WHERE "channelId" = ? AND "enabled" = 1'
-    : 'SELECT * FROM "NotificationContact" WHERE "channelId" = ?'
-  return sqlStore.all<Record<string, unknown>>(sql, [channelId]).map(contactRow)
-}
-
-function withContacts(
-  sqlStore: SqlJsStore,
-  channel: NotificationChannelRow,
-  include?: IncludeOption,
-): NotificationChannelWithContacts {
+export function postgresPoolConfig(settings: SystemSettings = loadSystemSettings()): PoolConfig {
   return {
-    ...channel,
-    contacts: include?.contacts ? findContactsForChannel(sqlStore, channel.id, include.contacts) : [],
+    host: settings.postgresHost,
+    port: settings.postgresPort,
+    database: settings.postgresDatabase,
+    user: settings.postgresUser,
+    password: settings.postgresPassword,
+    ssl: settings.postgresSslMode === 'require' ? { rejectUnauthorized: false } : undefined,
   }
 }
 
-async function findPackageUnique(args: { where: { id?: string; trackingNumber?: string } }) {
-  const sqlStore = await store()
-  const field = args.where.id ? 'id' : 'trackingNumber'
-  const value = args.where.id ?? args.where.trackingNumber
-  if (!value) return null
-
-  const row = sqlStore.get<Record<string, unknown>>(`SELECT * FROM "Package" WHERE "${field}" = ?`, [value])
-  return row ? packageRow(row) : null
+export async function ensurePostgresSchema(pool: Pool) {
+  await pool.query(postgresSchemaSql)
 }
 
-async function findNotificationChannelUnique(args: { where: { id: string }; include?: IncludeOption }) {
-  const sqlStore = await store()
-  const row = sqlStore.get<Record<string, unknown>>('SELECT * FROM "NotificationChannel" WHERE "id" = ?', [
-    args.where.id,
-  ])
-  return row ? withContacts(sqlStore, channelRow(row), args.include) : null
-}
+export function createPostgresDbFacade(pool = new Pool(postgresPoolConfig())): DbFacade {
+  let schemaReady: Promise<void> | null = null
 
-async function findLLMSettingUnique(args: { where: { id: string } }) {
-  const sqlStore = await store()
-  const row = sqlStore.get<Record<string, unknown>>('SELECT * FROM "LLMSetting" WHERE "id" = ?', [args.where.id])
-  return row ? llmRow(row) : null
-}
+  function ready() {
+    schemaReady ??= ensurePostgresSchema(pool)
+    return schemaReady
+  }
 
-async function createLLMSetting(args: { data: Data }) {
-  const sqlStore = await store()
-  const id = String(args.data.id ?? 'global')
-  const timestamp = nowIso()
-  const { sql, params } = insertSql('LLMSetting', {
-    id,
-    provider: 'openai',
-    compatMode: 'chat',
-    locale: 'en',
-    model: 'gpt-4o-mini',
-    enabled: false,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    ...args.data,
-  })
+  async function queryOne<T>(sql: string, params: unknown[], mapper: (row: Record<string, unknown>) => T) {
+    await ready()
+    const result = await pool.query(sql, params)
+    return result.rows[0] ? mapper(result.rows[0]) : null
+  }
 
-  sqlStore.run(sql, params)
-  await persist(sqlStore)
+  async function findContactsForChannel(channelId: string, include: IncludeContactsOption) {
+    await ready()
+    const onlyEnabled = typeof include === 'object' && include.where?.enabled === true
+    const sql = onlyEnabled
+      ? 'SELECT * FROM "NotificationContact" WHERE "channelId" = $1 AND "enabled" = true'
+      : 'SELECT * FROM "NotificationContact" WHERE "channelId" = $1'
+    const result = await pool.query(sql, [channelId])
+    return result.rows.map(contactRow)
+  }
 
-  return llmRow(requireRow(sqlStore.get<Record<string, unknown>>('SELECT * FROM "LLMSetting" WHERE "id" = ?', [id]), 'LLMSetting'))
-}
+  async function withContacts(
+    channel: NotificationChannelRow,
+    include?: IncludeOption,
+  ): Promise<NotificationChannelWithContacts> {
+    return {
+      ...channel,
+      contacts: include?.contacts ? await findContactsForChannel(channel.id, include.contacts) : [],
+    }
+  }
 
-async function updateLLMSetting(args: { where: { id: string }; data: Data }) {
-  const sqlStore = await store()
-  requireRow(sqlStore.get<Record<string, unknown>>('SELECT "id" FROM "LLMSetting" WHERE "id" = ?', [args.where.id]), 'LLMSetting')
+  async function findNotificationChannelUnique(args: { where: { id: string }; include?: IncludeOption }) {
+    const channel = await queryOne(
+      'SELECT * FROM "NotificationChannel" WHERE "id" = $1',
+      [args.where.id],
+      channelRow,
+    )
+    return channel ? withContacts(channel, args.include) : null
+  }
 
-  const { sql, params } = updateSql('LLMSetting', { ...args.data, updatedAt: nowIso() }, 'id', args.where.id)
-  sqlStore.run(sql, params)
-  await persist(sqlStore)
+  async function findLLMSettingUnique(args: { where: { id: string } }) {
+    return queryOne('SELECT * FROM "LLMSetting" WHERE "id" = $1', [args.where.id], llmRow)
+  }
 
-  return llmRow(requireRow(sqlStore.get<Record<string, unknown>>('SELECT * FROM "LLMSetting" WHERE "id" = ?', [args.where.id]), 'LLMSetting'))
-}
+  async function createLLMSetting(args: { data: Data }) {
+    await ready()
+    const id = String(args.data.id ?? 'global')
+    const timestamp = now()
+    const { sql, params } = insertReturningSql('LLMSetting', {
+      id,
+      provider: 'openai',
+      compatMode: 'chat',
+      locale: 'en',
+      model: 'gpt-4o-mini',
+      enabled: false,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      ...args.data,
+    })
+    const result = await pool.query(sql, params)
+    return llmRow(requireRow(result.rows[0], 'LLMSetting'))
+  }
 
-export function createDbFacade() {
+  async function updateLLMSetting(args: { where: { id: string }; data: Data }) {
+    await ready()
+    requireRow(await findLLMSettingUnique({ where: args.where }), 'LLMSetting')
+
+    const { sql, params } = updateReturningSql('LLMSetting', { ...args.data, updatedAt: now() }, 'id', args.where.id)
+    const result = await pool.query(sql, params)
+    return llmRow(requireRow(result.rows[0], 'LLMSetting'))
+  }
+
   return {
     package: {
       async findMany(args: { orderBy?: OrderByOption<keyof PackageRow & string> } = {}) {
-        const sqlStore = await store()
-        return sqlStore
-          .all<Record<string, unknown>>(`SELECT * FROM "Package"${orderClause('Package', args.orderBy)}`)
-          .map(packageRow)
+        await ready()
+        const result = await pool.query(`SELECT * FROM "Package"${orderClause('Package', args.orderBy)}`)
+        return result.rows.map(packageRow)
       },
-      findUnique: findPackageUnique,
+      async findUnique(args: { where: { id?: string; trackingNumber?: string } }) {
+        const field = args.where.id ? 'id' : 'trackingNumber'
+        const value = args.where.id ?? args.where.trackingNumber
+        if (!value) return null
+        return queryOne(`SELECT * FROM "Package" WHERE "${field}" = $1`, [value], packageRow)
+      },
       async create(args: { data: Data }) {
-        const sqlStore = await store()
+        await ready()
         const id = String(args.data.id ?? cuid())
-        const timestamp = nowIso()
-        const { sql, params } = insertSql('Package', {
+        const timestamp = now()
+        const { sql, params } = insertReturningSql('Package', {
           id,
           carrier: 'fedex',
           events: '[]',
@@ -379,32 +387,25 @@ export function createDbFacade() {
           ...args.data,
         })
 
-        sqlStore.run(sql, params)
-        await persist(sqlStore)
-
-        return packageRow(requireRow(sqlStore.get<Record<string, unknown>>('SELECT * FROM "Package" WHERE "id" = ?', [id]), 'Package'))
+        const result = await pool.query(sql, params)
+        return packageRow(requireRow(result.rows[0], 'Package'))
       },
       async update(args: { where: { id: string }; data: Data }) {
-        const sqlStore = await store()
-        requireRow(sqlStore.get<Record<string, unknown>>('SELECT "id" FROM "Package" WHERE "id" = ?', [args.where.id]), 'Package')
+        await ready()
+        requireRow(await queryOne('SELECT * FROM "Package" WHERE "id" = $1', [args.where.id], packageRow), 'Package')
 
-        const { sql, params } = updateSql('Package', { ...args.data, updatedAt: nowIso() }, 'id', args.where.id)
-        sqlStore.run(sql, params)
-        await persist(sqlStore)
-
-        return packageRow(requireRow(sqlStore.get<Record<string, unknown>>('SELECT * FROM "Package" WHERE "id" = ?', [args.where.id]), 'Package'))
+        const { sql, params } = updateReturningSql('Package', { ...args.data, updatedAt: now() }, 'id', args.where.id)
+        const result = await pool.query(sql, params)
+        return packageRow(requireRow(result.rows[0], 'Package'))
       },
       async delete(args: { where: { id: string } }) {
-        const sqlStore = await store()
+        await ready()
         const row = requireRow(
-          sqlStore.get<Record<string, unknown>>('SELECT * FROM "Package" WHERE "id" = ?', [args.where.id]),
+          await queryOne('SELECT * FROM "Package" WHERE "id" = $1', [args.where.id], packageRow),
           'Package',
         )
-
-        sqlStore.run('DELETE FROM "Package" WHERE "id" = ?', [args.where.id])
-        await persist(sqlStore)
-
-        return packageRow(row)
+        await pool.query('DELETE FROM "Package" WHERE "id" = $1', [args.where.id])
+        return row
       },
     },
     notificationChannel: {
@@ -415,23 +416,21 @@ export function createDbFacade() {
           orderBy?: OrderByOption<keyof NotificationChannelRow & string>
         } = {},
       ) {
-        const sqlStore = await store()
-        const where = args.where?.enabled === undefined ? '' : ' WHERE "enabled" = ?'
-        const params = args.where?.enabled === undefined ? [] : [args.where.enabled ? 1 : 0]
-        return sqlStore
-          .all<Record<string, unknown>>(
-            `SELECT * FROM "NotificationChannel"${where}${orderClause('NotificationChannel', args.orderBy)}`,
-            params,
-          )
-          .map(channelRow)
-          .map((channel) => withContacts(sqlStore, channel, args.include))
+        await ready()
+        const where = args.where?.enabled === undefined ? '' : ' WHERE "enabled" = $1'
+        const params = args.where?.enabled === undefined ? [] : [args.where.enabled]
+        const result = await pool.query(
+          `SELECT * FROM "NotificationChannel"${where}${orderClause('NotificationChannel', args.orderBy)}`,
+          params,
+        )
+        return Promise.all(result.rows.map(channelRow).map((channel) => withContacts(channel, args.include)))
       },
       findUnique: findNotificationChannelUnique,
       async create(args: { data: Data; include?: IncludeOption }) {
-        const sqlStore = await store()
+        await ready()
         const id = String(args.data.id ?? cuid())
-        const timestamp = nowIso()
-        const { sql, params } = insertSql('NotificationChannel', {
+        const timestamp = now()
+        const { sql, params } = insertReturningSql('NotificationChannel', {
           id,
           enabled: true,
           config: '{}',
@@ -443,97 +442,72 @@ export function createDbFacade() {
           ...args.data,
         })
 
-        sqlStore.run(sql, params)
-        await persist(sqlStore)
-
+        await pool.query(sql, params)
         return requireRow(await findNotificationChannelUnique({ where: { id }, include: args.include }), 'NotificationChannel')
       },
       async update(args: { where: { id: string }; data: Data; include?: IncludeOption }) {
-        const sqlStore = await store()
-        requireRow(
-          sqlStore.get<Record<string, unknown>>('SELECT "id" FROM "NotificationChannel" WHERE "id" = ?', [
-            args.where.id,
-          ]),
+        await ready()
+        requireRow(await findNotificationChannelUnique({ where: args.where }), 'NotificationChannel')
+
+        const { sql, params } = updateReturningSql(
           'NotificationChannel',
+          { ...args.data, updatedAt: now() },
+          'id',
+          args.where.id,
         )
-
-        const { sql, params } = updateSql('NotificationChannel', { ...args.data, updatedAt: nowIso() }, 'id', args.where.id)
-        sqlStore.run(sql, params)
-        await persist(sqlStore)
-
+        await pool.query(sql, params)
         return requireRow(await findNotificationChannelUnique({ where: args.where, include: args.include }), 'NotificationChannel')
       },
       async delete(args: { where: { id: string } }) {
-        const sqlStore = await store()
-        const row = requireRow(
-          sqlStore.get<Record<string, unknown>>('SELECT * FROM "NotificationChannel" WHERE "id" = ?', [
-            args.where.id,
-          ]),
-          'NotificationChannel',
-        )
-
-        sqlStore.run('DELETE FROM "NotificationChannel" WHERE "id" = ?', [args.where.id])
-        await persist(sqlStore)
-
+        await ready()
+        const row = requireRow(await findNotificationChannelUnique({ where: args.where }), 'NotificationChannel')
+        await pool.query('DELETE FROM "NotificationChannel" WHERE "id" = $1', [args.where.id])
         return channelRow(row)
       },
     },
     notificationContact: {
       async create(args: { data: Data }) {
-        const sqlStore = await store()
+        await ready()
         const id = String(args.data.id ?? cuid())
-        const { sql, params } = insertSql('NotificationContact', {
+        const { sql, params } = insertReturningSql('NotificationContact', {
           id,
           enabled: true,
-          createdAt: nowIso(),
+          createdAt: now(),
           ...args.data,
         })
 
-        sqlStore.run(sql, params)
-        await persist(sqlStore)
-
-        return contactRow(
-          requireRow(sqlStore.get<Record<string, unknown>>('SELECT * FROM "NotificationContact" WHERE "id" = ?', [id]), 'NotificationContact'),
-        )
+        const result = await pool.query(sql, params)
+        return contactRow(requireRow(result.rows[0], 'NotificationContact'))
       },
       async update(args: { where: WhereUnique; data: Data }) {
         const id = requireRow(args.where.id ?? null, 'NotificationContact')
-        const sqlStore = await store()
-        requireRow(sqlStore.get<Record<string, unknown>>('SELECT "id" FROM "NotificationContact" WHERE "id" = ?', [id]), 'NotificationContact')
+        await ready()
+        requireRow(await queryOne('SELECT * FROM "NotificationContact" WHERE "id" = $1', [id], contactRow), 'NotificationContact')
 
-        const { sql, params } = updateSql('NotificationContact', args.data, 'id', id)
-        sqlStore.run(sql, params)
-        await persist(sqlStore)
-
-        return contactRow(requireRow(sqlStore.get<Record<string, unknown>>('SELECT * FROM "NotificationContact" WHERE "id" = ?', [id]), 'NotificationContact'))
+        const { sql, params } = updateReturningSql('NotificationContact', args.data, 'id', id)
+        const result = await pool.query(sql, params)
+        return contactRow(requireRow(result.rows[0], 'NotificationContact'))
       },
       async delete(args: { where: WhereUnique }) {
         const id = requireRow(args.where.id ?? null, 'NotificationContact')
-        const sqlStore = await store()
+        await ready()
         const row = requireRow(
-          sqlStore.get<Record<string, unknown>>('SELECT * FROM "NotificationContact" WHERE "id" = ?', [id]),
+          await queryOne('SELECT * FROM "NotificationContact" WHERE "id" = $1', [id], contactRow),
           'NotificationContact',
         )
-
-        sqlStore.run('DELETE FROM "NotificationContact" WHERE "id" = ?', [id])
-        await persist(sqlStore)
-
-        return contactRow(row)
+        await pool.query('DELETE FROM "NotificationContact" WHERE "id" = $1', [id])
+        return row
       },
     },
     notificationSetting: {
       async findUnique(args: { where: { id: string } }) {
-        const sqlStore = await store()
-        const row = sqlStore.get<Record<string, unknown>>('SELECT * FROM "NotificationSetting" WHERE "id" = ?', [
-          args.where.id,
-        ])
-        return row ? settingRow(row) : null
+        return queryOne('SELECT * FROM "NotificationSetting" WHERE "id" = $1', [args.where.id], settingRow)
       },
       async create(args: { data: Data }) {
-        const sqlStore = await store()
+        await ready()
         const id = String(args.data.id ?? 'global')
-        const timestamp = nowIso()
-        const { sql, params } = insertSql('NotificationSetting', {
+        const timestamp = now()
+        const { sql, params } = insertReturningSql('NotificationSetting', {
           id,
           enabled: true,
           dailySummaryEnabled: false,
@@ -544,45 +518,35 @@ export function createDbFacade() {
           ...args.data,
         })
 
-        sqlStore.run(sql, params)
-        await persist(sqlStore)
-
-        return settingRow(
-          requireRow(sqlStore.get<Record<string, unknown>>('SELECT * FROM "NotificationSetting" WHERE "id" = ?', [id]), 'NotificationSetting'),
-        )
+        const result = await pool.query(sql, params)
+        return settingRow(requireRow(result.rows[0], 'NotificationSetting'))
       },
       async update(args: { where: { id: string }; data: Data }) {
-        const sqlStore = await store()
-        requireRow(
-          sqlStore.get<Record<string, unknown>>('SELECT "id" FROM "NotificationSetting" WHERE "id" = ?', [
-            args.where.id,
-          ]),
+        await ready()
+        requireRow(await queryOne('SELECT * FROM "NotificationSetting" WHERE "id" = $1', [args.where.id], settingRow), 'NotificationSetting')
+
+        const { sql, params } = updateReturningSql(
           'NotificationSetting',
+          { ...args.data, updatedAt: now() },
+          'id',
+          args.where.id,
         )
-
-        const { sql, params } = updateSql('NotificationSetting', { ...args.data, updatedAt: nowIso() }, 'id', args.where.id)
-        sqlStore.run(sql, params)
-        await persist(sqlStore)
-
-        return settingRow(
-          requireRow(sqlStore.get<Record<string, unknown>>('SELECT * FROM "NotificationSetting" WHERE "id" = ?', [args.where.id]), 'NotificationSetting'),
-        )
+        const result = await pool.query(sql, params)
+        return settingRow(requireRow(result.rows[0], 'NotificationSetting'))
       },
     },
     notificationLog: {
       async create(args: { data: Data }) {
-        const sqlStore = await store()
+        await ready()
         const id = String(args.data.id ?? cuid())
-        const { sql, params } = insertSql('NotificationLog', {
+        const { sql, params } = insertReturningSql('NotificationLog', {
           id,
-          sentAt: nowIso(),
+          sentAt: now(),
           ...args.data,
         })
 
-        sqlStore.run(sql, params)
-        await persist(sqlStore)
-
-        return logRow(requireRow(sqlStore.get<Record<string, unknown>>('SELECT * FROM "NotificationLog" WHERE "id" = ?', [id]), 'NotificationLog'))
+        const result = await pool.query(sql, params)
+        return logRow(requireRow(result.rows[0], 'NotificationLog'))
       },
     },
     lLMSetting: {
@@ -596,15 +560,7 @@ export function createDbFacade() {
       },
     },
     async $disconnect() {
-      return undefined
+      await pool.end()
     },
   }
 }
-
-export type DbFacade = ReturnType<typeof createDbFacade>
-
-export function createSqliteDbFacade() {
-  return createDbFacade()
-}
-
-export const db = createDbFacade()
