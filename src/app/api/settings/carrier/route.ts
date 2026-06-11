@@ -13,6 +13,7 @@ export async function GET(request: Request) {
     fedexApiKey: config?.fedexApiKey ? MASKED : '',
     fedexApiSecret: config?.fedexApiSecret ? MASKED : '',
     fedexProduction: config?.fedexProduction ?? false,
+    dhlApiKey: config?.dhlApiKey ? MASKED : '',
   })
 }
 
@@ -21,7 +22,7 @@ export async function PUT(request: Request) {
   if (forbidden) return forbidden
 
   const body = await request.json()
-  const existing = loadCarrierConfig() || { fedexApiKey: '', fedexApiSecret: '' }
+  const existing = loadCarrierConfig() || { fedexApiKey: '', fedexApiSecret: '', dhlApiKey: '' }
 
   if (body.fedexApiKey !== undefined) {
     existing.fedexApiKey = body.fedexApiKey === MASKED ? existing.fedexApiKey : body.fedexApiKey
@@ -32,11 +33,15 @@ export async function PUT(request: Request) {
   if (body.fedexProduction !== undefined) {
     existing.fedexProduction = body.fedexProduction
   }
+  if (body.dhlApiKey !== undefined) {
+    existing.dhlApiKey = body.dhlApiKey === MASKED ? existing.dhlApiKey : body.dhlApiKey
+  }
 
   saveCarrierConfig(existing)
   return NextResponse.json({
     fedexApiKey: existing.fedexApiKey ? MASKED : '',
     fedexApiSecret: existing.fedexApiSecret ? MASKED : '',
     fedexProduction: existing.fedexProduction ?? false,
+    dhlApiKey: existing.dhlApiKey ? MASKED : '',
   })
 }

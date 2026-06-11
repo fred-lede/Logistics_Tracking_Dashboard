@@ -1,6 +1,15 @@
 # Task State
 
 ## Completed
+- DHL Express Tracking Integration: New DHLTrackingProvider (Unified API), carrier config/settings, carrier selector in add-package form, 10 new tests, i18n
+- Added carrier badge (FedEx/DHL) to package card + TV card UI
+- TV card scroll area minHeight increased 3.5rem → 5rem
+- Added author "Fred Wang" to package.json
+- New app icon: package box + tracking radar theme (all platforms: PNG, .icns, .ico, favicon)
+- Redesigned logo: bolder package box + orange location pin for better recognition at all sizes
+- TV card AI summary scrolling: janky setInterval → smooth requestAnimationFrame marquee (55px/s, 2s pause at end)
+- Custom About dialog in Electron showing author + version + description
+- Added author "Fred Wang" to electron-builder.yml copyright
 - UI Review: Audited all frontend components against Web Interface Guidelines
 - High P1: Added aria-label to all icon buttons (delete, edit, timeline toggle, dialog close, toast)
 - High P2: Added role=switch + aria-checked to all 5 toggle buttons (settings page x2, channel card, channel dialog)
@@ -27,7 +36,7 @@
 - TV mode integration: button in dashboard header, full-screen overlay toggle
 - TV carousel speed setting in settings page
 - TV i18n keys in all 4 locales (dashboard + settings sections)
-- Build passes, 28/28 tests pass
+- Build passes, 87/87 tests pass
 
 ## In Progress
 - (none)

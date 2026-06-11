@@ -1,6 +1,8 @@
 # Logistics Tracking Dashboard
 
-多渠道包裹追蹤儀表板，整合 FedEx API、多通道通知（Teams/Telegram/WeChat/WhatsApp）、AI 延遲分析、4 語言 i18n，以及 Electron 桌面封裝。
+多渠道包裹追蹤儀表板，支援 **FedEx** 與 **DHL Express** 雙物流商、多通道通知（Teams/Telegram/WeChat/WhatsApp）、AI 延遲分析與摘要翻譯、**TV 儀表板模式**、4 語言 i18n，以及 Electron 桌面封裝。
+
+作者：**Fred Wang**
 
 ## 技術棧
 
@@ -10,7 +12,7 @@
 - **樣式：** Tailwind CSS v4
 - **i18n：** next-intl（en / zh-TW / zh-CN / es-MX）
 - **桌面封裝：** Electron 41 + electron-builder
-- **測試：** Vitest + React Testing Library
+- **測試：** Vitest + React Testing Library（87 項測試）
 - **套件管理：** npm
 
 ## 系統需求
@@ -32,17 +34,23 @@ npm install
 
 `npm install` 會自動執行 `prisma generate` 產生 Prisma Client。
 
-### FedEx API 憑證
+### Carrier API 憑證
 
-啟動後在應用程式內的 **Carrier Settings** 頁面輸入 FedEx API Key / Secret，或建立 `.env`：
+啟動後在應用程式內的 **Settings → Carrier Settings** 頁面輸入憑證：
+
+| 物流商 | 憑證 | 測試追蹤號碼 |
+|--------|------|-------------|
+| FedEx | API Key + API Secret（Sandbox / Production） | `794798798798` |
+| DHL Express | DHL-API-Key（Consumer Key） | 需等候 API 審核 |
+
+環境變數（亦可直接在設定頁面輸入）：
 
 ```env
 FEDEX_API_KEY=your_api_key
 FEDEX_API_SECRET=your_api_secret
 # FEDEX_ENV=production   # 取消註解切換至正式環境，預設 sandbox
+# DHL_API_KEY=your_consumer_key
 ```
-
-FedEx Sandbox 測試追蹤號碼：`794798798798`
 
 ### 資料庫
 
@@ -180,7 +188,8 @@ npx @electron/rebuild -f -w better-sqlite3
 
 內含：
 - `dev.db` — SQLite 資料庫
-- `.carrier-creds.json` — FedEx API 憑證
+- `.carrier-creds.json` — FedEx + DHL API 憑證
+- `.system-settings.json` — 伺服器模式設定
 - `electron.log` — 執行日誌
 
 ### Prisma Schema 變更
@@ -201,6 +210,19 @@ npx prisma migrate dev --name <描述>
 
 Windows 可能將未簽章的 `.exe` 標記為 SmartScreen 風險。點擊「更多資訊 → 仍要執行」即可。
 
+## 應用程式功能
+
+| 功能 | 說明 |
+|------|------|
+| **多物流商** | FedEx + DHL Express 包裹追蹤，動態切換物流商 |
+| **多通道通知** | Teams / Telegram / WeChat / WhatsApp + Electron 原生通知 |
+| **每日 / 定期摘要** | 定時發送包裹狀態總覽 |
+| **AI 延遲分析** | AI 自動判斷延遲風險等級與原因，支援多語言翻譯 |
+| **TV 儀表板** | 全螢幕 TV 模式，自動輪播、跑馬燈摘要、音效警示 |
+| **i18n** | 繁體中文 / 簡體中文 / English / Español (México) |
+| **系統匣** | 關閉視窗隱藏至系統匣，背景持續執行 |
+| **跨平台** | macOS (.dmg/.zip) / Windows (.exe/.portable) / Linux (.AppImage/.deb) |
+
 ## 專案結構
 
 ```
@@ -210,10 +232,14 @@ Windows 可能將未簽章的 `.exe` 標記為 SmartScreen 風險。點擊「更
 │   │   ├── settings/           # 通知設定頁面
 │   │   └── api/                # REST API 路由
 │   ├── components/             # React 元件
-│   ├── lib/                    # 共用邏輯（Prisma、追蹤、通知）
+│   │   └── tv/                 # TV 儀表板模式（TvCard、TvView、TvClock…）
+│   ├── lib/                    # 共用邏輯
+│   │   ├── tracking/           # 物流商抽象層（TrackingProvider + registry）
+│   │   │   └── providers/      # FedEx、DHL 實作
+│   │   └── notification/       # 通知抽象層（provider + registry + service）
 │   └── i18n/                   # next-intl 設定
 ├── electron/                   # Electron 主程序
-│   ├── main.js                 # 主程序（Next.js 伺服器生命週期、BrowserWindow）
+│   ├── main.js                 # 主程序（自訂 About 對話框）
 │   ├── preload.js              # contextBridge IPC
 │   ├── tray.js                 # 系統匣
 │   ├── notification.js         # 原生桌面通知
@@ -222,11 +248,23 @@ Windows 可能將未簽章的 `.exe` 標記為 SmartScreen 風險。點擊「更
 ├── prisma/                     # Prisma Schema + 遷移
 ├── messages/                   # i18n 翻譯檔（en/zh-TW/zh-CN/es-MX）
 ├── scripts/                    # 建置腳本
-│   ├── post-build.cjs          # Next.js 建置後處理（複製 static/public、清理）
+│   ├── post-build.cjs          # Next.js 建置後處理
 │   ├── rebuild-standalone-native.cjs  # 重建 standalone 原生模組給 Electron
-│   └── generate-icons.mjs      # 產生應用程式圖示
+│   └── generate-icons.mjs      # 產生應用程式圖示（支援自訂 icon.png）
+├── assets/                     # 應用程式圖示（放 icon.png 即可自動產生各平台格式）
 └── .github/workflows/          # CI 跨平台構建
 ```
+
+## 應用程式圖示
+
+在 `assets/icon.png` 放入自訂圖示（至少 512×512），執行建置時會自動產生所有平台格式：
+
+```
+icon.png → icon-512.png, icon-256.png, icon-32.png, icon.icns (macOS),
+           icon.ico (Windows), favicon.ico, tray-icon.png
+```
+
+若無自訂圖示則使用內建預設圖示。
 
 ## 授權
 

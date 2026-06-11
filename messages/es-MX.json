@@ -60,7 +60,10 @@
     "add": "Agregar",
     "adding": "Agregando...",
     "duplicate": "Este número de seguimiento ya existe",
-    "error": "Error al agregar paquete"
+    "error": "Error al agregar paquete",
+    "carrier": "Transportista",
+    "carrierFedex": "FedEx",
+    "carrierDhl": "DHL"
   },
   "settings": {
     "confirmDeleteChannel": "¿Está seguro de eliminar este canal?",
@@ -248,7 +251,8 @@
     "save": "Guardar",
     "saved": "Guardado",
     "sandboxMode": "Sandbox (pruebas)",
-    "prodMode": "Producción (en vivo)"
+    "prodMode": "Producción (en vivo)",
+    "dhlApiKey": "Clave de API de DHL"
   },
   "delayRisk": {
     "level": "Nivel de Riesgo",

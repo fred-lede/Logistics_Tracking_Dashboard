@@ -5,6 +5,7 @@ export interface CarrierConfig {
   fedexApiKey: string
   fedexApiSecret: string
   fedexProduction?: boolean
+  dhlApiKey: string
 }
 
 function getConfigDir(): string {
@@ -64,4 +65,12 @@ export function getFedExBaseUrl(): string {
     return 'https://apis.fedex.com'
   }
   return 'https://apis-sandbox.fedex.com'
+}
+
+export function getDHLApiKey(): string {
+  const fromEnv = process.env.DHL_API_KEY || ''
+  if (fromEnv) return fromEnv
+  const fromFile = loadCarrierConfig()
+  if (fromFile?.dhlApiKey) return fromFile.dhlApiKey
+  return ''
 }

@@ -178,7 +178,29 @@ function createAppMenu() {
     {
       label: app.name,
       submenu: [
-        { role: 'about' }, { type: 'separator' }, { role: 'hide' },
+        {
+          label: 'About Logistics Dashboard',
+          click: () => {
+            dialog.showMessageBox(mainWindow, {
+              type: 'info',
+              title: 'About Logistics Dashboard',
+              message: 'Logistics Dashboard',
+              detail: [
+                'Version: ' + app.getVersion(),
+                '',
+                'Author: Fred Wang',
+                'Multi-carrier package tracking dashboard',
+                'with multi-channel notification system.',
+                '',
+                'Built with Next.js + Electron',
+                'Copyright © 2026 Fred Wang',
+              ].join('\n'),
+              icon: path.join(__dirname, '..', 'assets', 'icon-256.png'),
+              buttons: ['OK'],
+            });
+          },
+        },
+        { type: 'separator' }, { role: 'hide' },
         { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' },
       ],
     },

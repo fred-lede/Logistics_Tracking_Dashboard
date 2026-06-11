@@ -1,6 +1,6 @@
 appId: com.logistics.dashboard
 productName: Logistics Dashboard
-copyright: Copyright © 2026
+copyright: Copyright © 2026 Fred Wang
 
 directories:
   output: release

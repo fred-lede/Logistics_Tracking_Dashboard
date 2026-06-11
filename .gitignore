@@ -58,3 +58,13 @@ release/
 # carrier API credentials
 .carrier-creds.json
 electron.log
+
+# Generated icon variants (keep icon.png as source)
+assets/icon-32.png
+assets/icon-128.png
+assets/icon-64.png
+assets/favicon.png
+assets/favicon.ico
+assets/icon.icns
+assets/icon.ico
+public/favicon.ico

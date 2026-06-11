@@ -13,6 +13,7 @@ export function AddPackageForm({ onAdded }: AddPackageFormProps) {
   const [trackingNumber, setTrackingNumber] = useState('')
   const [nickname, setNickname] = useState('')
   const [partNumbers, setPartNumbers] = useState('')
+  const [carrier, setCarrier] = useState('fedex')
   const [loading, setLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const { addToast } = useToast()
@@ -30,6 +31,7 @@ export function AddPackageForm({ onAdded }: AddPackageFormProps) {
           trackingNumber: trackingNumber.trim(),
           nickname: nickname.trim() || undefined,
           partNumbers: partNumbers.trim() || undefined,
+          carrier,
         }),
       })
 
@@ -63,18 +65,29 @@ export function AddPackageForm({ onAdded }: AddPackageFormProps) {
         <label htmlFor="tracking" className="block text-sm font-medium text-gray-700 mb-1">
           {t('trackingNumber')}
         </label>
-        <input
-          ref={inputRef}
-          id="tracking"
-          type="text"
-          value={trackingNumber}
-          onChange={(e) => setTrackingNumber(e.target.value)}
-          placeholder={t('placeholder')}
-          spellCheck={false}
-          autoComplete="off"
-          className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-fedex-purple focus:outline-none focus:ring-1 focus:ring-fedex-purple focus-visible:ring-fedex-purple"
-          required
-        />
+        <div className="flex gap-2">
+          <select
+            value={carrier}
+            onChange={(e) => setCarrier(e.target.value)}
+            className="rounded-lg border border-gray-300 px-2 py-2 text-sm bg-white focus:border-fedex-purple focus:outline-none focus:ring-1 focus:ring-fedex-purple focus-visible:ring-fedex-purple"
+            aria-label={t('carrier')}
+          >
+            <option value="fedex">{t('carrierFedex')}</option>
+            <option value="dhl">{t('carrierDhl')}</option>
+          </select>
+          <input
+            ref={inputRef}
+            id="tracking"
+            type="text"
+            value={trackingNumber}
+            onChange={(e) => setTrackingNumber(e.target.value)}
+            placeholder={t('placeholder')}
+            spellCheck={false}
+            autoComplete="off"
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-fedex-purple focus:outline-none focus:ring-1 focus:ring-fedex-purple focus-visible:ring-fedex-purple tabular-nums"
+            required
+          />
+        </div>
       </div>
       <div className="flex-1">
         <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-1">

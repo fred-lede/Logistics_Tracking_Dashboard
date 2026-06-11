@@ -60,7 +60,10 @@
     "add": "添加",
     "adding": "添加中...",
     "duplicate": "此追踪号码已存在",
-    "error": "添加包裹失败"
+    "error": "添加包裹失败",
+    "carrier": "物流商",
+    "carrierFedex": "FedEx",
+    "carrierDhl": "DHL"
   },
   "settings": {
     "confirmDeleteChannel": "确定要删除此频道吗？",
@@ -248,7 +251,8 @@
     "save": "保存",
     "saved": "已保存",
     "sandboxMode": "沙箱模式（测试）",
-    "prodMode": "正式模式（实时）"
+    "prodMode": "正式模式（实时）",
+    "dhlApiKey": "DHL API 密钥"
   },
   "delayRisk": {
     "level": "风险等级",

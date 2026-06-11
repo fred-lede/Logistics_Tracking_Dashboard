@@ -60,7 +60,10 @@
     "add": "Add",
     "adding": "Adding...",
     "duplicate": "This tracking number already exists",
-    "error": "Failed to add package"
+    "error": "Failed to add package",
+    "carrier": "Carrier",
+    "carrierFedex": "FedEx",
+    "carrierDhl": "DHL"
   },
   "settings": {
     "confirmDeleteChannel": "Are you sure you want to delete this channel?",
@@ -248,7 +251,8 @@
     "save": "Save",
     "saved": "Saved",
     "sandboxMode": "Sandbox (testing)",
-    "prodMode": "Production (live)"
+    "prodMode": "Production (live)",
+    "dhlApiKey": "DHL API Key"
   },
   "delayRisk": {
     "level": "Risk Level",

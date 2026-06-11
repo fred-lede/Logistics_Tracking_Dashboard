@@ -1,9 +1,11 @@
 import { FedExTrackingProvider } from './providers/fedex'
+import { DHLTrackingProvider } from './providers/dhl'
 import type { TrackingProvider } from './types'
 
 const providers = new Map<string, TrackingProvider>()
 
 providers.set('fedex', new FedExTrackingProvider())
+providers.set('dhl', new DHLTrackingProvider())
 
 export function registerProvider(carrier: string, provider: TrackingProvider): void {
   providers.set(carrier, provider)

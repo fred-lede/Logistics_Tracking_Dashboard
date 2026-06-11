@@ -157,6 +157,9 @@ export function PackageCard({ pkg, onDelete, onRefresh, onToggleAutoRefresh }: P
         <span className="font-mono text-sm font-semibold truncate tabular-nums">
           {pkg.trackingNumber}
         </span>
+        <span className="rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-gray-100 text-gray-500">
+          {pkg.carrier === 'fedex' ? 'FedEx' : pkg.carrier === 'dhl' ? 'DHL' : pkg.carrier}
+        </span>
         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadgeClass(pkg.status)}`}>
           {st(statusLabelKey(pkg.status))}
         </span>

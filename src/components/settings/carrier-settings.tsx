@@ -7,6 +7,7 @@ interface CarrierSettingsData {
   fedexApiKey: string
   fedexApiSecret: string
   fedexProduction: boolean
+  dhlApiKey: string
 }
 
 export function CarrierSettings() {
@@ -79,6 +80,22 @@ export function CarrierSettings() {
           </button>
           <span className="text-sm text-gray-700">{data.fedexProduction ? t('prodMode') : t('sandboxMode')}</span>
         </label>
+
+        <hr className="border-gray-200" />
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="dhl-key">
+            {t('dhlApiKey')}
+          </label>
+          <input
+            id="dhl-key"
+            type="password"
+            value={data.dhlApiKey}
+            onChange={(e) => setData({ ...data, dhlApiKey: e.target.value })}
+            placeholder="DHL_API_KEY"
+            className={inputCls}
+          />
+        </div>
 
         <div className="flex items-center gap-3">
           <button

@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   if (forbidden) return forbidden
 
   const body = await request.json()
-  const { trackingNumber, nickname, partNumbers } = body as Record<string, unknown>
+  const { trackingNumber, nickname, partNumbers, carrier } = body as Record<string, unknown>
 
   if (!trackingNumber || typeof trackingNumber !== 'string') {
     return NextResponse.json(
@@ -47,6 +47,10 @@ export async function POST(request: Request) {
       { status: 400 }
     )
   }
+
+  const safeCarrier = typeof carrier === 'string' && ['fedex', 'dhl'].includes(carrier)
+    ? carrier
+    : 'fedex'
 
   if (nickname !== undefined && typeof nickname !== 'string') {
     return NextResponse.json(
@@ -78,7 +82,7 @@ export async function POST(request: Request) {
   // Fetch initial tracking data
   let result
   try {
-    const provider = getProvider('fedex')
+    const provider = getProvider(safeCarrier)
     result = await provider.track(trackingNumber)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to fetch tracking data'
@@ -91,6 +95,7 @@ export async function POST(request: Request) {
   const pkg = await db.package.create({
     data: {
       trackingNumber,
+      carrier: safeCarrier,
       nickname: safeNickname,
       partNumbers: JSON.stringify(safePartNumbers),
       status: result.status,

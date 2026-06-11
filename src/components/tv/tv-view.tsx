@@ -13,6 +13,7 @@ interface PackageData {
   id: string
   trackingNumber: string
   nickname: string | null
+  carrier: string
   status: string | null
   origin: string | null
   destination: string | null
@@ -243,6 +244,7 @@ export function TvView({ packages, lastUpdated, onExit }: TvViewProps) {
               key={pkg.id}
               trackingNumber={pkg.trackingNumber}
               nickname={pkg.nickname}
+              carrier={pkg.carrier}
               status={pkg.status}
               origin={pkg.origin}
               destination={pkg.destination}

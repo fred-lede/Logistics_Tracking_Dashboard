@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react'
 interface TvCardProps {
   trackingNumber: string
   nickname: string | null
+  carrier: string
   status: string | null
   origin: string | null
   destination: string | null
@@ -42,33 +43,44 @@ function formatStatus(s: string | null): string {
   return s?.replace(/_/g, ' ') ?? 'UNKNOWN'
 }
 
-export function TvCard({ trackingNumber, nickname, status, origin, destination, eta, aiSummary, aiRootCause, aiDelayRisk, pulse, pulseColor }: TvCardProps) {
+export function TvCard({ trackingNumber, nickname, carrier, status, origin, destination, eta, aiSummary, aiRootCause, aiDelayRisk, pulse, pulseColor }: TvCardProps) {
   const borderColor = STATUS_BORDER_COLOR[status ?? ''] ?? '#6b7280'
   const badgeStyle = STATUS_BG[status ?? '']
   const isException = status === 'EXCEPTION' || status === 'DELAYED' || status === 'RETURN_TO_SENDER'
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const marqueeRef = useRef<HTMLDivElement>(null)
+  const innerRef = useRef<HTMLDivElement>(null)
+  const rafRef = useRef<number>(0)
+  const posRef = useRef(0)
+  const lastTimeRef = useRef(0)
 
   const hasBottomContent = !!(aiSummary || aiDelayRisk)
 
+  const summaryText = aiSummary ? (isException && aiRootCause ? `⚠ ${aiRootCause}` : `✨ ${aiSummary}`) : ''
+  const delayText = aiDelayRisk
+    ? `${aiDelayRisk.level.toUpperCase()}: ${aiDelayRisk.reason}${aiDelayRisk.suggestion ? `  💡 ${aiDelayRisk.suggestion}` : ''}`
+    : ''
+  const fullText = [summaryText, delayText].filter(Boolean).join('  •  ')
+
   useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-    const maxScroll = el.scrollHeight - el.clientHeight
-    if (maxScroll <= 0) return
-
-    let pos = 0
-    const id = setInterval(() => {
-      if (pos < maxScroll) {
-        pos++
-        el.scrollTop = pos
-      } else {
-        pos = 0
-        el.scrollTop = 0
+    function tick(now: number) {
+      const inner = innerRef.current
+      if (inner) {
+        const totalWidth = inner.scrollWidth / 2
+        if (totalWidth > 0) {
+          const dt = lastTimeRef.current ? now - lastTimeRef.current : 0
+          lastTimeRef.current = now
+          posRef.current -= 60 * dt / 1000
+          if (posRef.current <= -totalWidth) posRef.current = 0
+          inner.style.transform = `translateX(${posRef.current}px)`
+        } else {
+          lastTimeRef.current = 0
+        }
       }
-    }, 120)
-
-    return () => clearInterval(id)
-  }, [aiSummary, aiRootCause, aiDelayRisk])
+      rafRef.current = requestAnimationFrame(tick)
+    }
+    rafRef.current = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [])
 
   return (
     <div
@@ -95,9 +107,17 @@ export function TvCard({ trackingNumber, nickname, status, origin, destination, 
           )}
         </div>
 
-        {/* Tracking number / nickname */}
-        <div style={{ fontSize: '1.5rem', color: '#f1f5f9' }} className="font-bold truncate leading-tight shrink-0">
-          {nickname || trackingNumber}
+        {/* Tracking number / nickname + carrier badge */}
+        <div className="flex items-center gap-2 shrink-0 min-w-0">
+          <div style={{ fontSize: '1.5rem', color: '#f1f5f9' }} className="font-bold truncate leading-tight">
+            {nickname || trackingNumber}
+          </div>
+          <span
+            className="rounded px-2 py-0.5 font-semibold uppercase tracking-wider shrink-0"
+            style={{ fontSize: '0.75rem', backgroundColor: 'rgba(100,116,139,0.4)', color: '#94a3b8' }}
+          >
+            {carrier === 'fedex' ? 'FedEx' : carrier === 'dhl' ? 'DHL' : carrier}
+          </span>
         </div>
         {nickname && (
           <div style={{ fontSize: '1rem', color: '#94a3b8' }} className="truncate shrink-0">{trackingNumber}</div>
@@ -108,48 +128,33 @@ export function TvCard({ trackingNumber, nickname, status, origin, destination, 
           {origin || '?'} → {destination || '?'}
         </div>
 
-        {/* Scrollable bottom section */}
+        {/* Marquee bottom section */}
         {hasBottomContent && (
           <div
-            ref={scrollRef}
-            className="overflow-hidden mt-auto pt-2 border-t leading-snug"
+            ref={marqueeRef}
+            className="mt-auto pt-2 border-t overflow-hidden flex items-center"
             style={{
               borderColor: 'rgba(71, 85, 105, 0.6)',
-              maxHeight: '55%',
-              minHeight: '3.5rem',
+              minHeight: '2.5rem',
+              maskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
+              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
             }}
           >
-            {/* AI summary */}
-            {aiSummary && (
-              <div
-                style={{
-                  fontSize: '1.125rem',
-                  color: isException ? '#fca5a5' : '#c4b5fd',
-                }}
-              >
-                {isException && aiRootCause ? `⚠ ${aiRootCause}` : `✨ ${aiSummary}`}
-              </div>
-            )}
-
-            {/* Delay risk */}
-            {aiDelayRisk && (
-              <div
-                className={aiSummary ? 'mt-2' : ''}
-                style={{
-                  fontSize: '1rem',
-                  color:
-                    aiDelayRisk.level === 'critical' ? '#f87171' :
-                    aiDelayRisk.level === 'high' ? '#fb923c' :
-                    aiDelayRisk.level === 'medium' ? '#facc15' :
-                    '#4ade80',
-                }}
-              >
-                <span className="font-bold">{aiDelayRisk.level.toUpperCase()}</span>: {aiDelayRisk.reason}
-                {aiDelayRisk.suggestion && (
-                  <div style={{ opacity: 0.8, marginTop: '0.25rem' }}>💡 {aiDelayRisk.suggestion}</div>
-                )}
-              </div>
-            )}
+            <div
+              ref={innerRef}
+              style={{
+                display: 'inline-flex',
+                gap: '4rem',
+                whiteSpace: 'nowrap',
+                fontSize: '1.125rem',
+                lineHeight: '1.5',
+                color: isException ? '#fca5a5' : '#c4b5fd',
+                willChange: 'transform',
+              }}
+            >
+              <span>{fullText}</span>
+              <span>{fullText}</span>
+            </div>
           </div>
         )}
       </div>
