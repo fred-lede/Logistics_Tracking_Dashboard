@@ -151,11 +151,16 @@ export function updateSystemSettings(
   const nextAccessMode = isAccessMode(update.accessMode) ? update.accessMode : existing.accessMode
   const accessModeChanged =
     isAccessMode(update.accessMode) && update.accessMode !== existing.accessMode
-  const serverHostSubmitted = Object.prototype.hasOwnProperty.call(update, 'serverHost')
-  if (accessModeChanged && !serverHostSubmitted) {
+  const submittedServerHost =
+    typeof update.serverHost === 'string' && update.serverHost
+      ? update.serverHost
+      : undefined
+  if (accessModeChanged) {
     const existingHostWasDefault =
       !existing.serverHost || existing.serverHost === getDefaultServerHost(existing.accessMode)
-    if (existingHostWasDefault) {
+    const submittedHostWasPreviousDefault =
+      !submittedServerHost || submittedServerHost === getDefaultServerHost(existing.accessMode)
+    if (existingHostWasDefault && submittedHostWasPreviousDefault) {
       next.serverHost = getDefaultServerHost(nextAccessMode)
     }
   }

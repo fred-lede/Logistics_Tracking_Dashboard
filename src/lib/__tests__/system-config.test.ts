@@ -92,6 +92,22 @@ describe('system config', () => {
     expect(updated.serverHost).toBe('0.0.0.0')
   })
 
+  it('derives the new host when a full settings form resubmits the old default host', () => {
+    const existing: SystemSettings = {
+      ...DEFAULT_SYSTEM_SETTINGS,
+      accessMode: 'standalone',
+      serverHost: '127.0.0.1',
+    }
+
+    const updated = updateSystemSettings(existing, {
+      ...existing,
+      accessMode: 'server',
+      serverHost: '127.0.0.1',
+    })
+
+    expect(updated.serverHost).toBe('0.0.0.0')
+  })
+
   it('returns defaults when the system settings file is missing', () => {
     systemConfigDir = mkdtempSync(join(tmpdir(), 'system-config-'))
     process.env.SYSTEM_CONFIG_DIR = systemConfigDir

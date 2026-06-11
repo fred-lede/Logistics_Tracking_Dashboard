@@ -2,8 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const mockNetworkInterfaces = vi.fn()
 
-vi.mock(import('node:os'), async (importOriginal) => {
-  const actual = await importOriginal<typeof import('node:os')>()
+vi.mock('node:os', async () => {
+  const actual = await vi.importActual<typeof import('node:os')>('node:os')
 
   return {
     ...actual,
