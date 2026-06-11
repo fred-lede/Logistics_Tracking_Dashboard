@@ -136,8 +136,6 @@ export function TvCard({ trackingNumber, nickname, carrier, status, origin, dest
             style={{
               borderColor: 'rgba(71, 85, 105, 0.6)',
               minHeight: '2.5rem',
-              maskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
-              WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%)',
             }}
           >
             <div
