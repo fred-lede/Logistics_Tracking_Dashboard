@@ -57,6 +57,7 @@ release/
 
 # carrier API credentials
 .carrier-creds.json
+.system-settings.json
 electron.log
 
 # Generated icon variants (keep icon.png as source)
