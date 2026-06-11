@@ -87,7 +87,7 @@ export function TvCard({ trackingNumber, nickname, carrier, status, origin, dest
       className={`rounded-xl border-2 border-slate-500/60 shadow-xl flex flex-col h-full overflow-hidden${pulse ? ' tv-card--pulse' : ''}`}
       style={{ backgroundColor: '#1e293b', borderLeftWidth: '5px', borderLeftStyle: 'solid', borderLeftColor: borderColor, ...(pulseColor ? { '--pulse-color': pulseColor } as React.CSSProperties : {}) }}
     >
-      <div className="p-5 flex flex-col gap-2 flex-1 min-h-0">
+      <div className="p-3 flex flex-col gap-1 flex-1 min-h-0">
         {/* Status + ETA row */}
         <div className="flex items-center justify-between shrink-0">
           <span
@@ -132,10 +132,10 @@ export function TvCard({ trackingNumber, nickname, carrier, status, origin, dest
         {hasBottomContent && (
           <div
             ref={marqueeRef}
-            className="mt-auto pt-2 border-t overflow-hidden flex items-center"
+            className="mt-auto pt-1 border-t overflow-hidden flex items-center"
             style={{
               borderColor: 'rgba(71, 85, 105, 0.6)',
-              minHeight: '2.5rem',
+              minHeight: '1.5rem',
             }}
           >
             <div
