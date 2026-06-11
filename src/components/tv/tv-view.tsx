@@ -204,7 +204,7 @@ export function TvView({ packages, lastUpdated, onExit }: TvViewProps) {
 
   return (
     <div className="absolute inset-0 z-50 bg-[#0f172a] flex flex-col overflow-hidden"
-      style={{ colorScheme: 'dark', fontSize: 'clamp(10px, 1.4vmin, 16px)' }}
+      style={{ colorScheme: 'dark', fontSize: 'clamp(9px, 1.2vmin, 15px)' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between py-5 shrink-0" style={{ paddingInline: '3rem' }}>
