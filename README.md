@@ -222,6 +222,7 @@ Windows 可能將未簽章的 `.exe` 標記為 SmartScreen 風險。點擊「更
 | **i18n** | 繁體中文 / 簡體中文 / English / Español (México) |
 | **系統匣** | 關閉視窗隱藏至系統匣，背景持續執行 |
 | **跨平台** | macOS (.dmg/.zip) / Windows (.exe/.portable) / Linux (.AppImage/.deb) |
+| **About 對話框** | 工具列 ℹ 按鈕 + Electron 原生選單，顯示作者與版本資訊 |
 
 ## 專案結構
 

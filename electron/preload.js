@@ -5,4 +5,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.send('show-notification', { title, body })
   },
   getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  showAbout: () => ipcRenderer.invoke('show-about'),
 })

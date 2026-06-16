@@ -34,6 +34,7 @@ interface Channel {
 
 export function SettingsPage() {
   const st = useTranslations('settings')
+  const dt = useTranslations('dashboard')
   const ct = useTranslations('common')
   const [setting, setSetting] = useState<NotificationSetting | null>(null)
   const [channels, setChannels] = useState<Channel[]>([])
@@ -164,7 +165,20 @@ export function SettingsPage() {
           </Link>
           <h1 className="text-2xl font-bold text-gray-900">{st('title')}</h1>
         </div>
-        <LocaleSwitcher />
+        <div className="flex items-center gap-3">
+          <LocaleSwitcher />
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined' && (window as any).electronAPI?.showAbout) {
+                (window as any).electronAPI.showAbout()
+              }
+            }}
+            className="text-sm text-gray-500 hover:text-gray-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fedex-purple focus-visible:ring-offset-1 rounded"
+            aria-label={dt('about')}
+          >
+            <span aria-hidden="true">ℹ</span> {dt('about')}
+          </button>
+        </div>
       </div>
 
       <SystemSettings />

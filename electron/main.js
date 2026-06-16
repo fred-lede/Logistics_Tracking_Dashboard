@@ -173,33 +173,32 @@ function createWindow() {
   mainWindow.loadURL('http://localhost:' + settings.serverPort);
 }
 
+function showAboutDialog() {
+  dialog.showMessageBox(mainWindow, {
+    type: 'info',
+    title: 'About Logistics Dashboard',
+    message: 'Logistics Dashboard',
+    detail: [
+      'Version: ' + app.getVersion(),
+      '',
+      'Author: Fred Wang',
+      'Multi-carrier package tracking dashboard',
+      'with multi-channel notification system.',
+      '',
+      'Built with Next.js + Electron',
+      'Copyright © 2026 Fred Wang',
+    ].join('\n'),
+    icon: path.join(__dirname, '..', 'assets', 'icon-256.png'),
+    buttons: ['OK'],
+  });
+}
+
 function createAppMenu() {
   const template = [
     {
       label: app.name,
       submenu: [
-        {
-          label: 'About Logistics Dashboard',
-          click: () => {
-            dialog.showMessageBox(mainWindow, {
-              type: 'info',
-              title: 'About Logistics Dashboard',
-              message: 'Logistics Dashboard',
-              detail: [
-                'Version: ' + app.getVersion(),
-                '',
-                'Author: Fred Wang',
-                'Multi-carrier package tracking dashboard',
-                'with multi-channel notification system.',
-                '',
-                'Built with Next.js + Electron',
-                'Copyright © 2026 Fred Wang',
-              ].join('\n'),
-              icon: path.join(__dirname, '..', 'assets', 'icon-256.png'),
-              buttons: ['OK'],
-            });
-          },
-        },
+        { label: 'About Logistics Dashboard', click: showAboutDialog },
         { type: 'separator' }, { role: 'hide' },
         { role: 'hideOthers' }, { role: 'unhide' }, { type: 'separator' }, { role: 'quit' },
       ],
@@ -215,6 +214,8 @@ function killServer() {
 }
 
 registerNotificationIPC(ipcMain);
+
+ipcMain.handle('show-about', showAboutDialog);
 
 app.whenReady().then(async () => {
   log('App started, isDev:', isDev);
