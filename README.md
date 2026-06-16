@@ -8,7 +8,7 @@
 
 - **前端框架：** Next.js 16.2.7（App Router）
 - **語言：** TypeScript（strict）
-- **資料庫：** SQLite via Prisma 7（`@prisma/client` + `@prisma/adapter-better-sqlite3`）
+- **資料庫：** sql.js（SQLite WASM）+ pg（PostgreSQL），無原生模組
 - **樣式：** Tailwind CSS v4
 - **i18n：** next-intl（en / zh-TW / zh-CN / es-MX）
 - **桌面封裝：** Electron 41 + electron-builder
@@ -19,10 +19,6 @@
 
 - **Node.js** 20.x（建議 20.20+）
 - **npm** 10+
-- **C++ 編譯工具鏈**（編譯 `better-sqlite3` 原生模組用）
-  - **macOS：** Xcode Command Line Tools（`xcode-select --install`）
-  - **Windows：** Visual Studio Build Tools 或 `npm install -g windows-build-tools`
-  - **Linux：** `build-essential`（`sudo apt install build-essential`）
 
 ## 開發環境安裝
 
@@ -32,7 +28,7 @@ cd Logistics_Tracking_Dashboard
 npm install
 ```
 
-`npm install` 會自動執行 `prisma generate` 產生 Prisma Client。
+零原生模組依賴，`npm install` 即可完成。
 
 ### Carrier API 憑證
 
@@ -54,17 +50,9 @@ FEDEX_API_SECRET=your_api_secret
 
 ### 資料庫
 
-首次啟動 Electron 桌面版時會自動建立資料庫。若單獨使用 Next.js：
+首次啟動 Electron 桌面版時會自動建立 SQLite 資料庫。若需使用 PostgreSQL，請參考 `docs/server-mode-guide.md`。
 
-```bash
-npx prisma db push
-```
-
-瀏覽資料庫內容：
-
-```bash
-npx prisma studio
-```
+資料庫位置（SQLite）：執行目錄下的 `dev.db`（開發模式）或使用者資料目錄（打包版，詳見下方資料庫路徑章節）。
 
 ### 啟動開發模式
 
@@ -86,9 +74,7 @@ npm run build        # TypeScript 檢查 + Production 建置
 
 ## 編譯桌面安裝包
 
-### 重要：不可交叉編譯
-
-**每個平台的安裝包只能在該平台的原生環境上編譯。** `better-sqlite3` 是 C++ 原生模組，`node-gyp` 不支援跨平台編譯。在 macOS 上編譯 Windows 版會產出 macOS 二進位檔，Windows 無法載入。
+本專案無原生模組依賴（使用純 WASM sql.js），可從任何平台為任一目標平台編譯。但部分 `electron-builder` 功能（如 code signing、NSIS）仍需對應平台 SDK。
 
 ### macOS
 
@@ -126,7 +112,7 @@ npm run package:linux
 - `Logistics Dashboard-<版本>.AppImage`
 - `logistics-tracking-dashboard_<版本>_amd64.deb`
 
-### 使用 GitHub Actions CI（推薦）
+### 使用 GitHub Actions CI
 
 若需跨平台構建但沒有對應作業系統，使用 CI：
 
@@ -134,7 +120,7 @@ npm run package:linux
 git push origin main   # 推送後自動觸發
 ```
 
-CI 會在三個原生 runner 上分別編譯：
+CI 會在三個 runner 上分別編譯：
 - `macos-latest` → macOS 安裝包
 - `windows-latest` → Windows 安裝包
 - `ubuntu-latest` → Linux 安裝包
@@ -143,38 +129,9 @@ CI 會在三個原生 runner 上分別編譯：
 
 ## 注意事項
 
-### 原生模組 ABI
-
-`better-sqlite3` 的 `.node` 二進位檔與 Node.js ABI 版本綁定：
-
-| 環境 | Node.js | ABI |
-|------|---------|-----|
-| 系統 Node 20 | 20.x | 115 |
-| Electron 41 | 24.x | 145 |
-
-- **開發模式**（`npm run dev`）：Electron 使用自身的 ABI 145 二進位檔
-- **測試模式**（`npm test`）：系統 Node 需要 ABI 115 二進位檔
-- 切換模式若遇到 `NODE_MODULE_VERSION` 錯誤，重建原生模組：
-
-```bash
-# 重建給系統 Node
-npm rebuild better-sqlite3
-
-# 重建給 Electron
-npx @electron/rebuild -f -w better-sqlite3
-```
-
-### 編譯流程說明
-
-`npm run package:*` 依序執行三個步驟：
-
-1. **`npm run build`** — Next.js 產出 `.next/standalone/`（含 Node 20 ABI 115 的 `better-sqlite3`）
-2. **`node scripts/rebuild-standalone-native.cjs <platform>`** — 用 `@electron/rebuild` 將 standalone 內的 `better-sqlite3` 重建為 Electron ABI 145。若偵測到交叉編譯會立即報錯退出。
-3. **`electron-builder`** — 打包安裝程式。`npmRebuild: false` 避免 electron-builder 重複重建而覆蓋正確的二進位檔。
-
 ### 不可使用 ASAR
 
-`electron-builder.yml` 中 `asar: false`。原因是 Next.js 伺服器和 `setup-db.cjs` 以 `ELECTRON_RUN_AS_NODE=1` 子程序方式執行，純 Node.js 無法讀取 ASAR 封存內的檔案。
+`electron-builder.yml` 中 `asar: false`。原因是 Next.js 伺服器以 `ELECTRON_RUN_AS_NODE=1` 子程序方式執行，純 Node.js 無法讀取 ASAR 封存內的檔案。
 
 ### 資料庫與設定檔路徑
 
@@ -191,14 +148,6 @@ npx @electron/rebuild -f -w better-sqlite3
 - `.carrier-creds.json` — FedEx + DHL API 憑證
 - `.system-settings.json` — 伺服器模式設定
 - `electron.log` — 執行日誌
-
-### Prisma Schema 變更
-
-修改 `prisma/schema.prisma` 後需建立遷移：
-
-```bash
-npx prisma migrate dev --name <描述>
-```
 
 ### macOS Gatekeeper
 
@@ -237,20 +186,18 @@ Windows 可能將未簽章的 `.exe` 標記為 SmartScreen 風險。點擊「更
 │   ├── lib/                    # 共用邏輯
 │   │   ├── tracking/           # 物流商抽象層（TrackingProvider + registry）
 │   │   │   └── providers/      # FedEx、DHL 實作
-│   │   └── notification/       # 通知抽象層（provider + registry + service）
+│   │   ├── notification/       # 通知抽象層（provider + registry + service）
+│   │   └── db/                 # 資料庫抽象層（sql.js + PostgreSQL 雙後端）
 │   └── i18n/                   # next-intl 設定
 ├── electron/                   # Electron 主程序
 │   ├── main.js                 # 主程序（自訂 About 對話框）
 │   ├── preload.js              # contextBridge IPC
 │   ├── tray.js                 # 系統匣
 │   ├── notification.js         # 原生桌面通知
-│   ├── setup-db.cjs            # 首次啟動資料庫初始化
 │   └── electron-builder.yml    # 封裝設定
-├── prisma/                     # Prisma Schema + 遷移
 ├── messages/                   # i18n 翻譯檔（en/zh-TW/zh-CN/es-MX）
 ├── scripts/                    # 建置腳本
 │   ├── post-build.cjs          # Next.js 建置後處理
-│   ├── rebuild-standalone-native.cjs  # 重建 standalone 原生模組給 Electron
 │   └── generate-icons.mjs      # 產生應用程式圖示（支援自訂 icon.png）
 ├── assets/                     # 應用程式圖示（放 icon.png 即可自動產生各平台格式）
 └── .github/workflows/          # CI 跨平台構建
