@@ -186,7 +186,8 @@ export const whatsappWebProvider: NotificationProvider = {
         try {
           await withTimeout(state.initPromise, CLIENT_TIMEOUT_MS)
         } catch {
-          if (state.status === 'qr') {
+          const currentStatus: string = state.status
+          if (currentStatus === 'qr') {
             return { success: false, error: 'WhatsApp Web not authenticated. Scan the QR code in channel settings first.' }
           }
           return { success: false, error: `WhatsApp client initialization timed out: ${state.error || 'Unknown'}` }

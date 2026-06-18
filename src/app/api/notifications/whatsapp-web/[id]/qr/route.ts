@@ -11,20 +11,8 @@ async function waitForQrOrReady(
   state: WhatsAppWebClientState,
   timeoutMs = 30_000
 ): Promise<{ status: string; qr?: string; error?: string; message?: string }> {
-  if (state.status === 'ready') return { status: 'ready', message: 'Already authenticated' }
-  if (state.status === 'error') return { status: 'error', error: state.error }
-  if (state.qrCode) {
-    const qrDataUrl = await QRCode.toDataURL(state.qrCode, {
-      width: 300,
-      margin: 2,
-      color: { dark: '#000000', light: '#ffffff' },
-    })
-    return { status: 'qr', qr: qrDataUrl }
-  }
-
   const deadline = Date.now() + timeoutMs
-  while (Date.now() < deadline) {
-    await new Promise((r) => setTimeout(r, 500))
+  do {
     if (state.qrCode) {
       const qrDataUrl = await QRCode.toDataURL(state.qrCode, {
         width: 300,
@@ -35,7 +23,10 @@ async function waitForQrOrReady(
     }
     if (state.status === 'ready') return { status: 'ready', message: 'Already authenticated' }
     if (state.status === 'error') return { status: 'error', error: state.error }
-  }
+    if (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 500))
+    }
+  } while (Date.now() < deadline)
 
   return { status: 'initializing', message: 'Still initializing, try again' }
 }
