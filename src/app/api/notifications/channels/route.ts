@@ -30,6 +30,14 @@ export async function POST(request: Request) {
     },
     include: { contacts: true },
   })
+  if (body.type === 'whatsapp-web') {
+    const config = { ...(body.config || {}), _channelId: channel.id }
+    await db.notificationChannel.update({
+      where: { id: channel.id },
+      data: { config: JSON.stringify(config) },
+    })
+    channel.config = JSON.stringify(config)
+  }
   return NextResponse.json(parseChannel(channel), { status: 201 })
 }
 

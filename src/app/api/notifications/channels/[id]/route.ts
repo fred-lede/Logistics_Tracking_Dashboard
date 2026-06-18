@@ -33,6 +33,12 @@ export async function PUT(
 
   const { id } = await params
   const body = await request.json()
+  const existing = await db.notificationChannel.findUnique({ where: { id } })
+  if (body.type === 'whatsapp-web' || existing?.type === 'whatsapp-web') {
+    if (body.config) {
+      body.config._channelId = id
+    }
+  }
   const channel = await db.notificationChannel.update({
     where: { id },
       data: {

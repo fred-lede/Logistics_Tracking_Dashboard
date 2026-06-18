@@ -52,6 +52,10 @@ export function ChannelDialog({
   const [channelId, setChannelId] = useState(String(channel.config?.channelId || ''))
   const [apiKey, setApiKey] = useState(String(channel.config?.apiKey || ''))
   const [phoneNumberId, setPhoneNumberId] = useState(String(channel.config?.phoneNumberId || ''))
+  const [wwPhoneNumber, setWwPhoneNumber] = useState(String(channel.config?.phoneNumber || ''))
+  const [wwAuthStatus, setWwAuthStatus] = useState<string | null>(null)
+  const [wwQrCode, setWwQrCode] = useState<string | null>(null)
+  const [wwLoading, setWwLoading] = useState(false)
   const [corpId, setCorpId] = useState(String(channel.config?.corpId || ''))
   const [corpSecret, setCorpSecret] = useState(String(channel.config?.corpSecret || ''))
   const [agentId, setAgentId] = useState(String(channel.config?.agentId || ''))
@@ -92,7 +96,32 @@ export function ChannelDialog({
     if (channel.type === 'wechat' && wechatMode === 'app') return { corpId, corpSecret, agentId }
     if (channel.type === 'wechat') return { webhookUrl }
     if (channel.type === 'whatsapp') return { apiKey, phoneNumberId }
+    if (channel.type === 'whatsapp-web') return { phoneNumber: wwPhoneNumber }
     return {}
+  }
+
+  async function fetchWwQr() {
+    setWwLoading(true)
+    setWwAuthStatus(null)
+    setWwQrCode(null)
+    try {
+      const res = await fetch(`/api/notifications/whatsapp-web/${channel.id}/qr`)
+      const data = await res.json()
+      if (data.status === 'qr' && data.qr) {
+        setWwQrCode(data.qr)
+        setWwAuthStatus('qr')
+      } else if (data.status === 'ready') {
+        setWwAuthStatus('ready')
+      } else if (data.status === 'error') {
+        setWwAuthStatus('error')
+      } else {
+        setWwAuthStatus('initializing')
+      }
+    } catch {
+      setWwAuthStatus('error')
+    } finally {
+      setWwLoading(false)
+    }
   }
 
   function handleSave() {
@@ -218,6 +247,47 @@ export function ChannelDialog({
               <div>
                 <label htmlFor="dialog-wa-phone" className="block text-sm font-medium text-gray-700 mb-1">{st('phoneNumberId')}</label>
                 <input id="dialog-wa-phone" value={phoneNumberId} onChange={(e) => setPhoneNumberId(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fedex-purple focus-visible:ring-offset-1" />
+              </div>
+            </>
+          )}
+
+          {channel.type === 'whatsapp-web' && (
+            <>
+              <div>
+                <label htmlFor="dialog-ww-phone" className="block text-sm font-medium text-gray-700 mb-1">{st('wwPhoneNumber')}</label>
+                <input id="dialog-ww-phone" value={wwPhoneNumber} onChange={(e) => setWwPhoneNumber(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fedex-purple focus-visible:ring-offset-1" placeholder="15551234567" />
+                <p className="mt-1 text-xs text-gray-400">{st('wwPhoneNumberHint')}</p>
+              </div>
+              <div className="border border-gray-200 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium text-gray-700">{st('wwAuthStatus')}</span>
+                  <button
+                    onClick={fetchWwQr}
+                    disabled={wwLoading}
+                    className="rounded-md border border-gray-300 px-2.5 py-1 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fedex-purple focus-visible:ring-offset-1"
+                  >
+                    {wwLoading ? st('testing') : st('wwRefreshQr')}
+                  </button>
+                </div>
+                {wwAuthStatus === 'qr' && wwQrCode && (
+                  <div className="flex flex-col items-center gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={wwQrCode} alt="WhatsApp Web QR Code" className="w-48 h-48 border border-gray-200 rounded-lg" />
+                    <p className="text-xs text-gray-500">{st('wwQrHint')}</p>
+                  </div>
+                )}
+                {wwAuthStatus === 'ready' && (
+                  <p className="text-sm text-green-600">{st('wwAuthReady')}</p>
+                )}
+                {wwAuthStatus === 'error' && (
+                  <p className="text-sm text-red-600">{st('wwAuthError')}</p>
+                )}
+                {wwAuthStatus === 'initializing' && (
+                  <p className="text-sm text-gray-500">{st('wwAuthInitializing')}</p>
+                )}
+                {!wwAuthStatus && (
+                  <p className="text-xs text-gray-400">{st('wwAuthClickToStart')}</p>
+                )}
               </div>
             </>
           )}

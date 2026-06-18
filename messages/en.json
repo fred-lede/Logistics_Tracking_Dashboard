@@ -97,6 +97,8 @@
     "botToken": "Bot Token",
     "apiKey": "API Key",
     "phoneNumberId": "Phone Number ID",
+    "wwPhoneNumber": "Phone Number",
+    "wwPhoneNumberHint": "International format with country code (e.g. 15551234567)",
     "teamId": "Team ID",
     "channelId": "Channel ID",
     "tenantId": "Tenant ID",
@@ -121,6 +123,7 @@
     "channelTypeTelegram": "Telegram",
     "channelTypeWechat": "WeChat",
     "channelTypeWhatsapp": "WhatsApp",
+    "channelTypeWhatsappWeb": "WhatsApp Web",
     "modeWebhook": "Webhook",
     "modeGraphApi": "Graph API",
     "modeApp": "Self-Built App",
@@ -151,7 +154,13 @@
     "tvSoundChime": "Chime",
     "tvSoundAlertName": "Alert",
     "tvSoundSuccess": "Success",
-    "tvSoundTest": "Test Sound"
+    "tvSoundTest": "Test Sound",
+    "wwRefreshQr": "Refresh QR Code",
+    "wwQrHint": "Open WhatsApp on your phone and scan this QR code to link your session",
+    "wwAuthReady": "Connected and ready to send messages",
+    "wwAuthError": "Authentication failed",
+    "wwAuthInitializing": "Initializing WhatsApp Web client...",
+    "wwAuthClickToStart": "Click 'Refresh QR Code' to start authentication"
   },
   "system": {
     "title": "System mode",

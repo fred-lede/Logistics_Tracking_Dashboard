@@ -97,6 +97,8 @@
     "botToken": "Token del Bot",
     "apiKey": "API Key",
     "phoneNumberId": "ID de Número Telefónico",
+    "wwPhoneNumber": "Número Telefónico",
+    "wwPhoneNumberHint": "Formato internacional con código de país (ej. 15551234567)",
     "teamId": "ID del Equipo",
     "channelId": "ID del Canal",
     "tenantId": "ID del Inquilino",
@@ -121,6 +123,7 @@
     "channelTypeTelegram": "Telegram",
     "channelTypeWechat": "WeChat",
     "channelTypeWhatsapp": "WhatsApp",
+    "channelTypeWhatsappWeb": "WhatsApp Web",
     "modeWebhook": "Webhook",
     "modeGraphApi": "Graph API",
     "modeApp": "App integrada",
@@ -151,7 +154,13 @@
     "tvSoundChime": "Cascada",
     "tvSoundAlertName": "Alerta",
     "tvSoundSuccess": "Éxito",
-    "tvSoundTest": "Probar sonido"
+    "tvSoundTest": "Probar sonido",
+    "wwRefreshQr": "Actualizar código QR",
+    "wwQrHint": "Abra WhatsApp en su teléfono y escanee este código QR para vincular su sesión",
+    "wwAuthReady": "Conectado y listo para enviar mensajes",
+    "wwAuthError": "Autenticación fallida",
+    "wwAuthInitializing": "Inicializando cliente de WhatsApp Web...",
+    "wwAuthClickToStart": "Haga clic en 'Actualizar código QR' para iniciar la autenticación"
   },
   "system": {
     "title": "Modo del sistema",

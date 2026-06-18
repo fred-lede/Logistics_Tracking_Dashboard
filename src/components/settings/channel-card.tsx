@@ -104,7 +104,7 @@ export function ChannelCard({ channel, channelLabel, onToggle, onEdit, onDelete,
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100 text-sm font-bold text-gray-600" aria-hidden="true">
-          {channel.type === 'teams' ? '🅣' : channel.type === 'telegram' ? '✈' : channel.type === 'wechat' ? '💬' : '🆆'}
+          {channel.type === 'teams' ? '🅣' : channel.type === 'telegram' ? '✈' : channel.type === 'wechat' ? '💬' : channel.type === 'whatsapp' ? '🆆' : '🔗'}
         </div>
           <div>
             <div className="font-medium text-gray-900">

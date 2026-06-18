@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { wechatProvider } from '../providers/wechat'
 import { whatsappProvider } from '../providers/whatsapp'
+import { whatsappWebProvider } from '../providers/whatsapp-web'
 import { getSummaryTitle } from '../types'
 import type { StatusChangeMessage, OverdueMessage, SummaryMessage } from '../types'
 
@@ -56,6 +57,22 @@ describe('WhatsAppProvider with overdue', () => {
     const result = await whatsappProvider.send({}, [], overdueMessage)
     expect(result.success).toBe(false)
     expect(result.error).toBe('API key or Phone Number ID not configured')
+  })
+})
+
+describe('WhatsAppWebProvider', () => {
+  it('returns error when no _channelId in config', async () => {
+    const result = await whatsappWebProvider.send({}, [], sampleMessage)
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('Channel ID not found in config')
+  })
+})
+
+describe('WhatsAppWebProvider with overdue', () => {
+  it('returns error when no _channelId in config for overdue message', async () => {
+    const result = await whatsappWebProvider.send({}, [], overdueMessage)
+    expect(result.success).toBe(false)
+    expect(result.error).toBe('Channel ID not found in config')
   })
 })
 

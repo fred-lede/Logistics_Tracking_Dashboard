@@ -97,6 +97,8 @@
     "botToken": "Bot Token",
     "apiKey": "API Key",
     "phoneNumberId": "Phone Number ID",
+    "wwPhoneNumber": "手機號碼",
+    "wwPhoneNumberHint": "國際格式含國碼（例如 15551234567）",
     "teamId": "Team ID",
     "channelId": "Channel ID",
     "tenantId": "Tenant ID",
@@ -121,6 +123,7 @@
     "channelTypeTelegram": "Telegram",
     "channelTypeWechat": "微信",
     "channelTypeWhatsapp": "WhatsApp",
+    "channelTypeWhatsappWeb": "WhatsApp Web",
     "modeWebhook": "Webhook",
     "modeGraphApi": "Graph API",
     "modeApp": "自建應用",
@@ -151,7 +154,13 @@
     "tvSoundChime": "上升音階",
     "tvSoundAlertName": "警示音",
     "tvSoundSuccess": "成功音",
-    "tvSoundTest": "測試音效"
+    "tvSoundTest": "測試音效",
+    "wwRefreshQr": "重新整理 QR 碼",
+    "wwQrHint": "在手機上開啟 WhatsApp，掃描此 QR 碼以連結會話",
+    "wwAuthReady": "已連線，可發送訊息",
+    "wwAuthError": "認證失敗",
+    "wwAuthInitializing": "正在初始化 WhatsApp Web 用戶端...",
+    "wwAuthClickToStart": "點擊「重新整理 QR 碼」開始認證"
   },
   "system": {
     "title": "系統模式",

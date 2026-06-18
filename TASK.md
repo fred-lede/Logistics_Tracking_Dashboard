@@ -36,7 +36,16 @@
 - TV mode integration: button in dashboard header, full-screen overlay toggle
 - TV carousel speed setting in settings page
 - TV i18n keys in all 4 locales (dashboard + settings sections)
-- Build passes, 87/87 tests pass
+- Build passes, 89/89 tests pass
+- WhatsApp Web (whatsapp-web.js) notification provider:
+  - New `whatsapp-web` notification channel type using whatsapp-web.js + Puppeteer for personal WhatsApp accounts
+  - Client manager singleton with LocalAuth session persistence (sessions stored in `.wwjs-sessions/`)
+  - QR code authentication flow via `/api/notifications/whatsapp-web/[id]/qr` endpoint (generates QR as base64 data URL)
+  - Auth status endpoint at `/api/notifications/whatsapp-web/[id]/status`
+  - Frontend: QR code display + auth status in channel dialog, new icons/badges in settings UI
+  - Channel ID auto-injected into config (`_channelId`) for client lifecycle management
+  - i18n for all 4 locales (en, zh-TW, zh-CN, es-MX)
+  - 2 validation tests added (89 total)
 
 ## In Progress
 - (none)

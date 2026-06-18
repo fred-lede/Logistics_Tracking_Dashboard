@@ -97,6 +97,8 @@
     "botToken": "Bot Token",
     "apiKey": "API Key",
     "phoneNumberId": "Phone Number ID",
+    "wwPhoneNumber": "手机号码",
+    "wwPhoneNumberHint": "国际格式含国家码（例如 15551234567）",
     "teamId": "Team ID",
     "channelId": "Channel ID",
     "tenantId": "Tenant ID",
@@ -121,6 +123,7 @@
     "channelTypeTelegram": "Telegram",
     "channelTypeWechat": "微信",
     "channelTypeWhatsapp": "WhatsApp",
+    "channelTypeWhatsappWeb": "WhatsApp Web",
     "modeWebhook": "Webhook",
     "modeGraphApi": "Graph API",
     "modeApp": "自建应用",
@@ -151,7 +154,13 @@
     "tvSoundChime": "上升音阶",
     "tvSoundAlertName": "警示音",
     "tvSoundSuccess": "成功音",
-    "tvSoundTest": "测试音效"
+    "tvSoundTest": "测试音效",
+    "wwRefreshQr": "刷新二维码",
+    "wwQrHint": "在手机上打开 WhatsApp，扫描此二维码以链接会话",
+    "wwAuthReady": "已连接，可发送消息",
+    "wwAuthError": "认证失败",
+    "wwAuthInitializing": "正在初始化 WhatsApp Web 客户端...",
+    "wwAuthClickToStart": "点击「刷新二维码」开始认证"
   },
   "system": {
     "title": "系统模式",

@@ -47,6 +47,7 @@ export function SettingsPage() {
     telegram: st('channelTypeTelegram'),
     wechat: st('channelTypeWechat'),
     whatsapp: st('channelTypeWhatsapp'),
+    'whatsapp-web': st('channelTypeWhatsappWeb'),
   }
 
   useEffect(() => {

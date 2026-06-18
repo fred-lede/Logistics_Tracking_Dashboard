@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
 
-const CHANNEL_TYPES = ['teams', 'telegram', 'wechat', 'whatsapp'] as const
+const CHANNEL_TYPES = ['teams', 'telegram', 'wechat', 'whatsapp', 'whatsapp-web'] as const
 
 export function AddChannelForm({
   onAdd,
@@ -26,6 +26,7 @@ export function AddChannelForm({
   const [channelId, setChannelId] = useState('')
   const [apiKey, setApiKey] = useState('')
   const [phoneNumberId, setPhoneNumberId] = useState('')
+  const [wwPhoneNumber, setWwPhoneNumber] = useState('')
   const [corpId, setCorpId] = useState('')
   const [corpSecret, setCorpSecret] = useState('')
   const [agentId, setAgentId] = useState('')
@@ -36,6 +37,7 @@ export function AddChannelForm({
     telegram: st('channelTypeTelegram'),
     wechat: st('channelTypeWechat'),
     whatsapp: st('channelTypeWhatsapp'),
+    'whatsapp-web': st('channelTypeWhatsappWeb'),
   }
 
   function buildConfig(): Record<string, unknown> {
@@ -43,6 +45,7 @@ export function AddChannelForm({
     if (type === 'telegram') return { botToken }
     if (type === 'wechat' && wechatMode === 'app') return { corpId, corpSecret, agentId }
     if (type === 'whatsapp') return { apiKey, phoneNumberId }
+    if (type === 'whatsapp-web') return { phoneNumber: wwPhoneNumber }
     return { webhookUrl }
   }
 
@@ -138,6 +141,14 @@ export function AddChannelForm({
             <input id="add-wa-phone" value={phoneNumberId} onChange={(e) => setPhoneNumberId(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fedex-purple focus-visible:ring-offset-1" />
           </div>
         </>
+      )}
+
+      {type === 'whatsapp-web' && (
+        <div>
+          <label htmlFor="add-ww-phone" className="block text-sm font-medium text-gray-700 mb-1">{st('wwPhoneNumber')}</label>
+          <input id="add-ww-phone" value={wwPhoneNumber} onChange={(e) => setWwPhoneNumber(e.target.value)} className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fedex-purple focus-visible:ring-offset-1" placeholder="15551234567" />
+          <p className="mt-1 text-xs text-gray-400">{st('wwPhoneNumberHint')}</p>
+        </div>
       )}
 
       {type === 'teams' && mode === 'graph' && (
