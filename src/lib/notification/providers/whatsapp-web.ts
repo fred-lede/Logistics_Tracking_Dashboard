@@ -1,9 +1,17 @@
-import { Client, LocalAuth } from 'whatsapp-web.js'
+import {
+  makeWASocket,
+  useMultiFileAuthState,
+  Browsers,
+  DisconnectReason,
+  type WASocket,
+} from '@whiskeysockets/baileys'
+import QRCode from 'qrcode'
 import type { NotificationProvider, NotificationMessage, NotificationResult } from '../types'
 import { getSummaryTitle } from '../types'
 import path from 'path'
+import { rmSync } from 'fs'
 
-const SESSION_PATH = process.env.WWJS_SESSION_PATH || path.join(process.cwd(), '.wwjs-sessions')
+const SESSION_PATH = process.env.BAILEYS_SESSION_PATH || path.join(process.cwd(), '.baileys-sessions')
 const CLIENT_TIMEOUT_MS = 60_000
 
 function buildMessageText(message: NotificationMessage): string {
@@ -69,7 +77,7 @@ export interface WhatsAppWebClientState {
   status: 'initializing' | 'qr' | 'ready' | 'error' | 'closed'
   qrCode?: string
   error?: string
-  client: Client
+  socket: WASocket | null
   initPromise: Promise<void>
 }
 
@@ -79,76 +87,86 @@ function getSessionPath(channelId: string): string {
   return path.join(SESSION_PATH, `channel-${channelId}`)
 }
 
-function getClientId(channelId: string): string {
-  return channelId
+function clearSessionData(dataDir: string): void {
+  try {
+    rmSync(dataDir, { recursive: true, force: true })
+  } catch {
+  }
 }
 
 export async function getOrCreateClient(channelId: string): Promise<WhatsAppWebClientState> {
   const existing = clients.get(channelId)
-  if (existing) return existing
-
-  const client = new Client({
-    authStrategy: new LocalAuth({
-      dataPath: getSessionPath(channelId),
-      clientId: getClientId(channelId),
-    }),
-    puppeteer: {
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-    },
-    qrMaxRetries: 0,
-    takeoverOnConflict: true,
-  })
-
-  const state: WhatsAppWebClientState = {
-    status: 'initializing',
-    client,
-    initPromise: new Promise(() => {}),
+  if (existing) {
+    if (existing.status === 'ready' || existing.status === 'qr' || existing.status === 'initializing') {
+      return existing
+    }
+    await destroyClient(channelId)
   }
-  clients.set(channelId, state)
 
-  client.on('qr', (qr) => {
-    state.status = 'qr'
-    state.qrCode = qr
-    state.error = undefined
+  const authDir = getSessionPath(channelId)
+  const { state, saveCreds } = await useMultiFileAuthState(authDir)
+
+  let resolveInit!: (value: void | PromiseLike<void>) => void
+  const initPromise = new Promise<void>((resolve) => {
+    resolveInit = resolve
   })
 
-  client.on('ready', () => {
-    state.status = 'ready'
-    state.qrCode = undefined
-    state.error = undefined
-    resolveInit(state)
+  const stateObj: WhatsAppWebClientState = {
+    status: 'initializing',
+    socket: null,
+    initPromise,
+  }
+  clients.set(channelId, stateObj)
+
+  const socket = makeWASocket({
+    auth: state,
+    browser: Browsers.macOS('Desktop'),
+    printQRInTerminal: false,
+    markOnlineOnConnect: false,
+  })
+  stateObj.socket = socket
+
+  socket.ev.on('creds.update', saveCreds)
+
+  socket.ev.on('connection.update', (update) => {
+    const { qr, connection, lastDisconnect } = update
+
+    if (qr) {
+      stateObj.status = 'qr'
+      stateObj.qrCode = qr
+      stateObj.error = undefined
+    }
+
+    if (connection === 'open') {
+      stateObj.status = 'ready'
+      stateObj.qrCode = undefined
+      stateObj.error = undefined
+      resolveInit()
+    }
+
+    if (connection === 'close') {
+      const statusCode = (lastDisconnect?.error as any)?.output?.statusCode
+      if (statusCode === DisconnectReason.loggedOut) {
+        stateObj.status = 'error'
+        stateObj.error = 'Session logged out. Re-authentication required.'
+        clearSessionData(authDir)
+      } else {
+        stateObj.status = 'closed'
+        stateObj.error = `WhatsApp Web disconnected: ${lastDisconnect?.error?.message || 'Unknown reason'}`
+      }
+      resolveInit()
+    }
   })
 
-  client.on('auth_failure', (msg) => {
-    state.status = 'error'
-    state.error = typeof msg === 'string' ? msg : 'Authentication failure'
-    resolveInit(state)
-  })
-
-  client.on('disconnected', (reason) => {
-    state.status = 'closed'
-    state.error = typeof reason === 'string' ? reason : 'Disconnected'
-  })
-
-  state.initPromise = client.initialize()
-
-  return state
-}
-
-function resolveInit(state: WhatsAppWebClientState): void {
-  const p = state.initPromise
-  state.initPromise = Promise.resolve()
-  void p
+  return stateObj
 }
 
 export async function destroyClient(channelId: string): Promise<void> {
-  const state = clients.get(channelId)
-  if (!state) return
+  const existing = clients.get(channelId)
+  if (!existing) return
   clients.delete(channelId)
   try {
-    await state.client.destroy()
+    existing.socket?.end(undefined)
   } catch {
   }
 }
@@ -160,6 +178,11 @@ export async function destroyAllClients(): Promise<void> {
 
 function getChannelId(config: Record<string, unknown>): string | null {
   return String(config._channelId || '') || null
+}
+
+function toJid(phoneNumber: string): string {
+  const cleaned = phoneNumber.replace(/[^0-9]/g, '')
+  return `${cleaned}@s.whatsapp.net`
 }
 
 export const whatsappWebProvider: NotificationProvider = {
@@ -175,7 +198,15 @@ export const whatsappWebProvider: NotificationProvider = {
       const state = await getOrCreateClient(channelId)
 
       if (state.status === 'qr') {
-        return { success: false, error: 'WhatsApp Web not authenticated. Scan the QR code in channel settings first.' }
+        try {
+          await withTimeout(state.initPromise, CLIENT_TIMEOUT_MS)
+        } catch {
+          return { success: false, error: 'WhatsApp Web not authenticated. Scan the QR code in channel settings first.' }
+        }
+        const s: string = state.status
+        if (s === 'error') {
+          return { success: false, error: `WhatsApp client error: ${state.error || 'Authentication failure'}` }
+        }
       }
 
       if (state.status === 'error') {
@@ -194,21 +225,34 @@ export const whatsappWebProvider: NotificationProvider = {
         }
       }
 
+      if (!state.socket) {
+        return { success: false, error: 'WhatsApp Web socket not available' }
+      }
+
       const text = buildMessageText(message)
       let lastError = ''
 
       for (const contact of contacts) {
         if (!contact.identifier) continue
-        const phoneId = contact.identifier.includes('@')
-          ? contact.identifier
-          : `${contact.identifier}@c.us`
+        const jid = toJid(contact.identifier)
         try {
           await withTimeout(
-            state.client.sendMessage(phoneId, text),
-            30_000
+            state.socket.sendMessage(jid, { text }),
+            30_000,
           )
         } catch (err) {
-          lastError = `Failed for ${contact.name || contact.identifier}: ${String(err)}`
+          const msg = String(err)
+          if (msg.includes('evaluate') || msg.includes('Cannot read properties of null')) {
+            await new Promise((r) => setTimeout(r, 3000))
+            try {
+              await withTimeout(state.socket!.sendMessage(jid, { text }), 30_000)
+            } catch {
+              void destroyClient(channelId)
+              lastError = `Failed for ${contact.name || contact.identifier}: WhatsApp Web disconnected`
+            }
+          } else {
+            lastError = `Failed for ${contact.name || contact.identifier}: ${msg}`
+          }
         }
       }
 

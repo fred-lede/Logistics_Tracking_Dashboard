@@ -9,10 +9,11 @@ import QRCode from 'qrcode'
 
 async function waitForQrOrReady(
   state: WhatsAppWebClientState,
-  timeoutMs = 30_000
+  timeoutMs = 60_000
 ): Promise<{ status: string; qr?: string; error?: string; message?: string }> {
   const deadline = Date.now() + timeoutMs
   do {
+    if (state.status === 'error') return { status: 'error', error: state.error || 'WhatsApp client error' }
     if (state.qrCode) {
       const qrDataUrl = await QRCode.toDataURL(state.qrCode, {
         width: 300,
@@ -22,7 +23,6 @@ async function waitForQrOrReady(
       return { status: 'qr', qr: qrDataUrl }
     }
     if (state.status === 'ready') return { status: 'ready', message: 'Already authenticated' }
-    if (state.status === 'error') return { status: 'error', error: state.error }
     if (Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 500))
     }

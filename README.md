@@ -12,7 +12,7 @@
 - **樣式：** Tailwind CSS v4
 - **i18n：** next-intl（en / zh-TW / zh-CN / es-MX）
 - **桌面封裝：** Electron 41 + electron-builder
-- **測試：** Vitest + React Testing Library（87 項測試）
+- **測試：** Vitest + React Testing Library（89 項測試）
 - **套件管理：** npm
 
 ## 系統需求
@@ -164,7 +164,7 @@ Windows 可能將未簽章的 `.exe` 標記為 SmartScreen 風險。點擊「更
 | 功能 | 說明 |
 |------|------|
 | **多物流商** | FedEx + DHL Express 包裹追蹤，動態切換物流商 |
-| **多通道通知** | Teams / Telegram / WeChat / WhatsApp + Electron 原生通知 |
+| **多通道通知** | Teams / Telegram / WeChat / WhatsApp Cloud / WhatsApp Web（Baileys）
 | **每日 / 定期摘要** | 定時發送包裹狀態總覽 |
 | **AI 延遲分析** | AI 自動判斷延遲風險等級與原因，支援多語言翻譯 |
 | **TV 儀表板** | 全螢幕 TV 模式，自動輪播、跑馬燈摘要、音效警示 |

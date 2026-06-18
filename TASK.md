@@ -37,15 +37,15 @@
 - TV carousel speed setting in settings page
 - TV i18n keys in all 4 locales (dashboard + settings sections)
 - Build passes, 89/89 tests pass
-- WhatsApp Web (whatsapp-web.js) notification provider:
-  - New `whatsapp-web` notification channel type using whatsapp-web.js + Puppeteer for personal WhatsApp accounts
-  - Client manager singleton with LocalAuth session persistence (sessions stored in `.wwjs-sessions/`)
-  - QR code authentication flow via `/api/notifications/whatsapp-web/[id]/qr` endpoint (generates QR as base64 data URL)
-  - Auth status endpoint at `/api/notifications/whatsapp-web/[id]/status`
-  - Frontend: QR code display + auth status in channel dialog, new icons/badges in settings UI
-  - Channel ID auto-injected into config (`_channelId`) for client lifecycle management
-  - i18n for all 4 locales (en, zh-TW, zh-CN, es-MX)
-  - 2 validation tests added (89 total)
+- WhatsApp Web (whatsapp-web.js + Puppeteer) notification provider — replaced by Baileys in v0.3.2
+- WHATSAPP-WEB MIGRATION v0.3.2: Replaced whatsapp-web.js (Puppeteer ~300MB) with @whiskeysockets/baileys (WebSocket, zero browser deps)
+  - Removed whatsapp-web.js, puppeteer, @aws-sdk/client-s3 dependencies
+  - Rewrote provider using Baileys `makeWASocket` + `useMultiFileAuthState` for session persistence
+  - QR flow via `connection.update` event (no browser launch)
+  - Session stored in `.baileys-sessions/` as JSON files (no Chrome user profile)
+  - JID format: `phoneNumber@s.whatsapp.net` (handled internally by `toJid()`)
+  - Cleaned up `serverExternalPackages` in next.config.ts
+  - All 89 tests pass, build clean
 
 ## In Progress
 - (none)

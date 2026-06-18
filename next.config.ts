@@ -5,7 +5,7 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  serverExternalPackages: ['whatsapp-web.js', 'puppeteer', '@aws-sdk/client-s3'],
+  serverExternalPackages: ['@whiskeysockets/baileys'],
   webpack: (config: Record<string, unknown>) => config,
 }
 
