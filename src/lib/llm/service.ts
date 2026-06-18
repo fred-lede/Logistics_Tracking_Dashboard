@@ -166,7 +166,7 @@ export async function analyzePackage(
       events: pkg.events,
     })
 
-    const summary = await provider.generateText(summaryPrompt, { maxTokens: 200, timeout: LLM_TIMEOUT_MS })
+    const summary = (await provider.generateText(summaryPrompt, { maxTokens: 200, timeout: LLM_TIMEOUT_MS })).trim()
 
     let rootCause: string | null = null
     if (isException) {
@@ -175,7 +175,7 @@ export async function analyzePackage(
         status: pkg.status,
         events: pkg.events,
       })
-      rootCause = await provider.generateText(rootCausePrompt, { maxTokens: 200, timeout: LLM_TIMEOUT_MS })
+      rootCause = (await provider.generateText(rootCausePrompt, { maxTokens: 200, timeout: LLM_TIMEOUT_MS })).trim()
     }
 
     let delayRisk: DelayRisk | null = null
@@ -201,6 +201,14 @@ export async function analyzePackage(
       }
     } catch {
       // Risk analysis is optional — silently skip on failure
+    }
+
+    if (!summary) {
+      await db.package.update({
+        where: { id: pkgId },
+        data: { aiAnalyzedAt: new Date() },
+      })
+      return null
     }
 
     await db.package.update({

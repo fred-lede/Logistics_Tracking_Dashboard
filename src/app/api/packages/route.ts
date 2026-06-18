@@ -11,6 +11,14 @@ function safeParseJSON(value: string): unknown[] {
   }
 }
 
+function safeParseJSONObj(value: string): unknown {
+  try {
+    return JSON.parse(value)
+  } catch {
+    return null
+  }
+}
+
 function normalizePartNumbers(input: unknown): string[] {
   if (Array.isArray(input)) {
     return input.filter((p): p is string => typeof p === 'string').map((p) => p.trim()).filter(Boolean)
@@ -30,6 +38,7 @@ export async function GET() {
       events: safeParseJSON(p.events),
       subPackages: safeParseJSON(p.subPackages),
       partNumbers: safeParseJSON(p.partNumbers),
+      aiDelayRisk: p.aiDelayRisk ? safeParseJSONObj(p.aiDelayRisk) : null,
     }))
   )
 }

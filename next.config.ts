@@ -5,8 +5,7 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  serverExternalPackages: ['@whiskeysockets/baileys'],
-  webpack: (config: Record<string, unknown>) => config,
+  serverExternalPackages: ['@whiskeysockets/baileys', 'sql.js'],
 }
 
 export default withNextIntl(nextConfig)

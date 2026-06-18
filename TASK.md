@@ -47,6 +47,13 @@
   - Cleaned up `serverExternalPackages` in next.config.ts
   - All 89 tests pass, build clean
 
+## v0.3.3 — AI Summary Bug Fixes
+- **Root Cause**: `dev:next` used `--webpack` flag → sql.js WASM failed to load (Turbopack ESM handles `createRequire` correctly) → API returned 500 or stale data
+- **Fix**: Removed `--webpack` flag, added `sql.js` to `serverExternalPackages`, wrapped `initNotifications()` in try/catch
+- **Guard**: `analyzePackage()` now trims LLM output and rejects empty summaries (only updates `aiAnalyzedAt` to prevent retry spam)
+- **aiDelayRisk**: Parsed from JSON string to object in GET /api/packages (was raw string, would crash PackageCard)
+- 89 tests pass, build clean
+
 ## In Progress
 - (none)
 
